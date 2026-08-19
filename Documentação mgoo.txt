@@ -1,0 +1,96 @@
+Documentação Arquitetural e Funcional - MVP MGOO
+1. Visão Geral do Produto
+O MGOO é uma Aplicação Web (Single Page Application - SPA) desenvolvida para digitalizar e centralizar o controle de fluxo de caixa diário de uma rede de lojas de roupas. O objetivo principal do MVP é eliminar o uso de cadernos físicos, garantindo visibilidade em tempo real do faturamento e controle de permissões entre a equipe de vendas (Lojistas) e a gestão (Administrador).
+
+2. Arquitetura do Sistema (Stack Tecnológico)
+A aplicação adota uma arquitetura Serverless baseada no ecossistema Google Workspace, focada em custo zero de infraestrutura e alta disponibilidade.
+
+Frontend (Interface): HTML5, CSS3 nativo (variáveis CSS, flexbox, design responsivo) e Vanilla JavaScript.
+
+Backend (Lógica): Google Apps Script (GAS) rodando em ambiente Node-like, responsável por intermediar as requisições (API) entre o Front e o Banco de Dados.
+
+Banco de Dados: Google Sheets, estruturado como tabelas relacionais simples ("flat tables").
+
+Bibliotecas Externas:
+
+Chart.js (Renderização de gráficos no Dashboard).
+
+FontAwesome (Ícones vetorizados).
+
+3. Segurança e Autenticação
+Para garantir uma experiência de uso sem atritos (sem a necessidade de os funcionários aprovarem permissões do Google ou terem acesso físico à planilha), a arquitetura de segurança foi desenhada da seguinte forma:
+
+Execução do Script: O aplicativo roda com as credenciais do Desenvolvedor (Executar como: Eu). Isso blinda o banco de dados; nenhum usuário final tem o link ou permissão de leitura da planilha no Google Drive.
+
+Login Customizado: Sistema de autenticação próprio construído na aplicação, exigindo E-mail e Senha definidos no cadastro de usuários.
+
+Gestão de Sessão: Utilização de localStorage no navegador do dispositivo. Após o primeiro login, as credenciais são armazenadas localmente para auto-login, mantendo a praticidade no dia a dia da loja.
+
+4. Modelagem de Dados (Google Sheets)
+O banco de dados está estruturado em três abas principais:
+
+Lojas: Tabela de domínio para alimentar caixas de seleção.
+
+Colunas: ID_Loja, Nome_Loja, Status.
+
+Usuarios: Tabela de controle de acesso e configurações padrão de preenchimento.
+
+Colunas: Email, Nome, Perfil (ADM/Lojista), Loja_Padrao, Entrada_Padrao, Saida_Padrao, Ativo, Senha.
+
+Fechamentos: Tabela transacional principal (histórico de caixas).
+
+Colunas: ID, Carimbo_Sistema, Data_Ref, Entrada, Saida, Email_Usuario, Loja, Pix, Dinheiro, Cartao, Despesa, Obs_Despesa.
+
+5. Perfis de Acesso (Roles)
+O sistema opera com controle de acesso baseado em funções (RBAC - Role-Based Access Control):
+
+Lojista: Acesso restrito. Pode visualizar apenas seus próprios lançamentos, registrar novos caixas e editar exclusivamente os caixas que possuem a data referente ao dia atual.
+
+Administrador (ADM): Acesso global. Visualiza o Dashboard financeiro de toda a rede, gerencia (cria/edita) usuários, e possui permissão irrestrita para visualizar e editar qualquer lançamento no histórico de qualquer loja.
+
+6. Módulos e Funcionalidades Implementadas
+Módulo de Login
+Tela inicial imersiva com a identidade visual da marca.
+
+Validação de e-mail (conversão automática para minúsculas e remoção de espaços invisíveis).
+
+Feedback visual de erros (senha incorreta, usuário inativo).
+
+Módulo: Caixa / Fechamento (Core)
+Formulário de preenchimento diário com auto-load das preferências do usuário (Loja, Horário de Entrada e Saída).
+
+Máscaras de Input: Teclado numérico acionado automaticamente em dispositivos móveis, formatação instantânea de moeda (R$ 0.000,00).
+
+Calculadora em Tempo Real: Totalizador dinâmico (Pix + Dinheiro + Cartão - Despesa) que atualiza instantaneamente a cada dígito inserido.
+
+Validação de Negócio: Bloqueio de salvamento caso um valor de Despesa seja preenchido sem o respectivo "Motivo da Despesa".
+
+Módulo: Dashboard (Exclusivo ADM)
+Filtros Dinâmicos: Filtragem cruzada por Loja Específica, Data de Início e Data de Fim.
+
+KPIs (Key Performance Indicators): Cards totalizadores com valores em Reais (R$) para Faturamento Total, Pix, Cartão e Dinheiro.
+
+Gráfico de Linha do Tempo: Análise de tendência de faturamento organizado cronologicamente.
+
+Gráfico de Barras: Comparativo de desempenho de faturamento por loja.
+
+Módulo: Histórico
+Tabela com todos os fechamentos registrados, formatada para facilitar a leitura rápida (Data BR, Loja, Ent/Sai, Total).
+
+Trava de Compliance: Botão de "Editar" habilitado dinamicamente. Lojistas veem o botão transformado em um ícone de "Cadeado (Fechado)" para dias anteriores ao dia atual.
+
+Módulo: Gestão de Usuários (Exclusivo ADM)
+Interface CRUD (Create, Read, Update) completa.
+
+Possibilidade de inativar usuários instantaneamente (bloqueando acesso ao app) sem excluir o histórico de vendas vinculado a eles.
+
+Criação e redefinição de senhas para a equipe de vendas.
+
+7. UI/UX (Interface e Experiência do Usuário)
+Navegação SPA: Transições instantâneas entre telas sem recarregar a página web, conferindo sensação de aplicativo nativo (App-like feel).
+
+Responsividade: Menu lateral (Sidebar) retrátil em dispositivos móveis ("Menu Hambúrguer") e fixo em telas desktop.
+
+Identidade Visual: Design System próprio baseado na paleta "Golden Goose" (Fundo Bege #FDF9F1, Menu Marrom Escuro #4A3B32, e Destaques Dourado/Terroso #8C6A48).
+
+Loaders Globais: Feedback visual de carregamento (Spinner) durante comunicações com o servidor (Google Sheets) para evitar cliques duplos.

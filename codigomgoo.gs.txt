@@ -1,0 +1,214 @@
+/** @OnlyCurrentDoc */
+
+function doGet(e) {
+  return HtmlService.createTemplateFromFile('Index')
+      .evaluate()
+      .setTitle('MGOO - Sistema')
+      .setFaviconUrl('https://i.postimg.cc/6pDhzpkp/Golden-goose-icon-3D-animation-202608161416-removebg-preview.png')
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+}
+
+// --------------------------------------------------------
+// NOVO SISTEMA DE LOGIN
+// --------------------------------------------------------
+
+function fazerLogin(email, senha) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var wsUsuarios = ss.getSheetByName('Usuarios');
+  var usersData = wsUsuarios.getDataRange().getValues();
+  
+  var emailBuscado = email.toLowerCase().trim();
+  var senhaBuscada = senha.toString().trim();
+  
+  for(var i=1; i<usersData.length; i++) {
+    var emailBanco = usersData[i][0].toString().toLowerCase().trim();
+    var senhaBanco = usersData[i][7] ? usersData[i][7].toString().trim() : ""; // Coluna H (Índice 7)
+    var ativoBanco = usersData[i][6];
+    
+    if(emailBanco === emailBuscado) {
+      if(ativoBanco !== 'Sim') throw new Error("Usuário inativo.");
+      if(senhaBanco !== senhaBuscada) throw new Error("Senha incorreta.");
+      
+      // Login Sucesso! Retorna os dados completos da aplicação para esse usuário.
+      return getAppDataForUser(emailBuscado);
+    }
+  }
+  throw new Error("E-mail não encontrado.");
+}
+
+function getAppDataForUser(emailUsuario) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var wsUsuarios = ss.getSheetByName('Usuarios');
+  var usersData = wsUsuarios.getDataRange().getValues();
+  
+  var currentUser = null;
+  var allUsers = [];
+  
+  for(var i=1; i<usersData.length; i++) {
+    var u = {
+      email: usersData[i][0].toString().toLowerCase().trim(), 
+      nome: usersData[i][1], 
+      perfil: usersData[i][2],
+      lojaPadrao: usersData[i][3], 
+      entradaPadrao: formatarHora(usersData[i][4]), 
+      saidaPadrao: formatarHora(usersData[i][5]), 
+      ativo: usersData[i][6],
+      senha: usersData[i][7]
+    };
+    allUsers.push(u);
+    if(u.email === emailUsuario) currentUser = u;
+  }
+  
+  var wsLojas = ss.getSheetByName('Lojas');
+  var lojasData = wsLojas.getDataRange().getValues();
+  var lojas = [];
+  for(var i=1; i<lojasData.length; i++) {
+    if(lojasData[i][2] === 'Ativa') lojas.push(lojasData[i][1]);
+  }
+
+  var wsFechamentos = ss.getSheetByName('Fechamentos');
+  var fechData = wsFechamentos.getDataRange().getValues();
+  var fechamentos = [];
+  
+  for(var i=fechData.length-1; i>=1; i--) { 
+    var row = fechData[i];
+    var autor = row[5] ? row[5].toString().toLowerCase().trim() : "";
+    
+    if(currentUser.perfil === 'ADM' || autor === emailUsuario) {
+      fechamentos.push({
+        id: row[0], dataRef: formatarData(row[2]), entrada: formatarHora(row[3]), saida: formatarHora(row[4]),
+        usuario: row[5], loja: row[6], pix: formatarMoeda(row[7]), dinheiro: formatarMoeda(row[8]),
+        cartao: formatarMoeda(row[9]), sangria: formatarMoeda(row[10]), obsSangria: row[11],
+        total: formatarMoeda((row[7] || 0) + (row[8] || 0) + (row[9] || 0) - (row[10] || 0))
+      });
+    }
+  }
+
+  return { user: currentUser, lojas: lojas, fechamentos: fechamentos, usuarios: currentUser.perfil === 'ADM' ? allUsers : [] };
+}
+
+// --------------------------------------------------------
+// FUNÇÕES DE GRAVAÇÃO (CRUD)
+// --------------------------------------------------------
+
+function salvarFechamento(dados) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ws = ss.getSheetByName('Fechamentos');
+  var carimbo = new Date();
+  var email = dados.userEmail.toLowerCase().trim(); // Puxa o e-mail do payload agora
+  
+  var pixNum = converterParaNumero(dados.pix);
+  var dinNum = converterParaNumero(dados.dinheiro);
+  var carNum = converterParaNumero(dados.cartao);
+  var sanNum = converterParaNumero(dados.sangria);
+  
+  if (dados.id) {
+    var data = ws.getDataRange().getValues();
+    for(var i=1; i<data.length; i++) {
+      if(data[i][0].toString() === dados.id.toString()) {
+        var row = i + 1; 
+        ws.getRange(row, 3).setValue(dados.dataRef);
+        ws.getRange(row, 4).setValue(dados.entrada);
+        ws.getRange(row, 5).setValue(dados.saida);
+        ws.getRange(row, 7).setValue(dados.loja);
+        ws.getRange(row, 8).setValue(pixNum);
+        ws.getRange(row, 9).setValue(dinNum);
+        ws.getRange(row, 10).setValue(carNum);
+        ws.getRange(row, 11).setValue(sanNum);
+        ws.getRange(row, 12).setValue(dados.obsSangria);
+        return "Fechamento atualizado com sucesso!";
+      }
+    }
+    throw new Error("Registro não encontrado para edição.");
+  } else {
+    var lastRow = ws.getLastRow();
+    var newId = lastRow > 1 ? parseInt(ws.getRange(lastRow, 1).getValue()) + 1 : 1000;
+    
+    ws.appendRow([
+      newId, carimbo, dados.dataRef, dados.entrada, dados.saida, 
+      email, dados.loja, pixNum, dinNum, carNum, sanNum, dados.obsSangria
+    ]);
+    return "Fechamento registrado com sucesso!";
+  }
+}
+
+function salvarUsuario(dados) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ws = ss.getSheetByName('Usuarios');
+  var data = ws.getDataRange().getValues();
+  
+  var emailFormatado = dados.email.toLowerCase().trim();
+  
+  for(var i=1; i<data.length; i++) {
+    if(data[i][0].toString().toLowerCase().trim() === emailFormatado) {
+      var row = i + 1;
+      ws.getRange(row, 2).setValue(dados.nome);
+      ws.getRange(row, 3).setValue(dados.perfil);
+      ws.getRange(row, 4).setValue(dados.lojaPadrao);
+      ws.getRange(row, 5).setValue(dados.entradaPadrao);
+      ws.getRange(row, 6).setValue(dados.saidaPadrao);
+      ws.getRange(row, 7).setValue(dados.ativo);
+      ws.getRange(row, 8).setValue(dados.senha); // Salva a senha
+      return "Usuário atualizado com sucesso!";
+    }
+  }
+  
+  ws.appendRow([
+    emailFormatado, dados.nome, dados.perfil, dados.lojaPadrao, 
+    dados.entradaPadrao, dados.saidaPadrao, dados.ativo, dados.senha
+  ]);
+  return "Novo usuário cadastrado com sucesso!";
+}
+
+function formatarHora(valor) {
+  if (!valor) return "";
+  if (valor instanceof Date) return ("0" + valor.getHours()).slice(-2) + ":" + ("0" + valor.getMinutes()).slice(-2);
+  return valor.toString().substring(0, 5); 
+}
+function formatarData(valor) {
+  if (!valor) return "";
+  if (valor instanceof Date) {
+    return new Date(valor.getTime() - (valor.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+  }
+  var str = valor.toString().trim();
+  var partes = str.split('/');
+  if (partes.length === 3) {
+    var dia = partes[0];
+    var mes = partes[1];
+    var ano = partes[2];
+    if (dia.length === 1) dia = "0" + dia;
+    if (mes.length === 1) mes = "0" + mes;
+    return ano + "-" + mes + "-" + dia;
+  }
+  return str;
+}
+function formatarMoeda(valor) { return !valor ? "0,00" : parseFloat(valor).toFixed(2).replace('.', ','); }
+function converterParaNumero(valor) { return !valor ? 0.00 : parseFloat(valor.toString().replace(/\./g, '').replace(',', '.')); }
+
+function doPost(e) {
+  var response = {};
+  try {
+    var payload = JSON.parse(e.postData.contents);
+    var action = payload.action;
+    var result;
+    
+    if (action === 'fazerLogin') {
+      result = fazerLogin(payload.email, payload.senha);
+    } else if (action === 'getAppDataForUser') {
+      result = getAppDataForUser(payload.email);
+    } else if (action === 'salvarFechamento') {
+      result = salvarFechamento(payload.dados);
+    } else if (action === 'salvarUsuario') {
+      result = salvarUsuario(payload.dados);
+    } else {
+      throw new Error("Ação não reconhecida: " + action);
+    }
+    
+    response = { success: true, data: result };
+  } catch (error) {
+    response = { success: false, error: error.message || error.toString() };
+  }
+  
+  return ContentService.createTextOutput(JSON.stringify(response))
+    .setMimeType(ContentService.MimeType.JSON);
+}

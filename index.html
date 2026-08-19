@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MGOO - Sistema</title>
+
+  <link rel="icon" type="image/png"
+    href="https://i.postimg.cc/6pDhzpkp/Golden-goose-icon-3D-animation-202608161416-removebg-preview.png">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root {
+      --bg-color: #FDF9F1;
+      --sidebar-bg: #4A3B32;
+      --sidebar-hover: #3A2E27;
+      --primary: #8C6A48;
+      --text-dark: #333333;
+      --text-light: #E8DFD5;
+      --card-bg: #FFFFFF;
+      --border: #E0D6C8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-dark);
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* LAYOUT: SIDEBAR & MAIN */
+    .sidebar {
+      width: 250px;
+      background-color: var(--sidebar-bg);
+      color: var(--text-light);
+      display: flex;
+      flex-direction: column;
+      transition: 0.3s;
+    }
+
+    .sidebar-header {
+      padding: 20px;
+      text-align: center;
+      border-bottom: 1px solid var(--sidebar-hover);
+    }
+
+    .sidebar-header img {
+      width: 70px;
+      height: auto;
+      margin-bottom: 10px;
+      drop-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    .sidebar-header h2 {
+      color: #D4AF37;
+      letter-spacing: 2px;
+      margin-bottom: 0;
+    }
+
+    .nav-links {
+      flex: 1;
+      padding-top: 15px;
+      list-style: none;
+    }
+
+    .nav-links li {
+      padding: 15px 20px;
+      cursor: pointer;
+      transition: 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      border-left: 4px solid transparent;
+    }
+
+    .nav-links li:hover {
+      background-color: var(--sidebar-hover);
+    }
+
+    .nav-links li.active {
+      background-color: var(--sidebar-hover);
+      border-left-color: var(--primary);
+      color: white;
+      font-weight: bold;
+    }
+
+    .user-info {
+      padding: 15px;
+      background: rgba(0, 0, 0, 0.2);
+      font-size: 0.9em;
+      text-align: center;
+    }
+
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      display: none;
+    }
+
+    .topbar {
+      background: var(--card-bg);
+      padding: 15px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    }
+
+    .menu-toggle {
+      font-size: 1.5em;
+      cursor: pointer;
+      color: var(--sidebar-bg);
+      display: none;
+      margin-right: 15px;
+    }
+
+    .content-area {
+      padding: 25px;
+      flex: 1;
+    }
+
+    /* TELAS */
+    .screen {
+      display: none;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    .screen.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* LOGIN SCREEN */
+    #screen-login {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      width: 100vw;
+      background: var(--bg-color);
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 1000;
+    }
+
+    .login-card {
+      background: var(--card-bg);
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      max-width: 400px;
+      width: 90%;
+    }
+
+    .login-card img {
+      width: 100px;
+      margin-bottom: 20px;
+    }
+
+    /* COMPONENTES */
+    .card {
+      background: var(--card-bg);
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.03);
+      border: 1px solid var(--border);
+      margin-bottom: 20px;
+    }
+
+    h3.section-title {
+      color: var(--sidebar-bg);
+      margin-bottom: 20px;
+      border-bottom: 2px solid var(--primary);
+      padding-bottom: 5px;
+      display: inline-block;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+      text-align: left;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 0.9em;
+      font-weight: 600;
+      color: #555;
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 16px;
+      background: #FAFAFA;
+      transition: 0.2s;
+    }
+
+    input:focus,
+    select:focus {
+      outline: none;
+      border-color: var(--primary);
+      background: #FFF;
+    }
+
+    input[readonly] {
+      background-color: #E2E8F0;
+      color: var(--primary);
+      border-color: var(--border);
+      cursor: not-allowed;
+    }
+
+    .row {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    .col {
+      flex: 1;
+      min-width: 150px;
+    }
+
+    button.btn-primary {
+      width: 100%;
+      padding: 12px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 1.1em;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    button.btn-primary:hover {
+      background: #7A5B3D;
+    }
+
+    button.btn-secundario {
+      padding: 10px;
+      background: transparent;
+      color: var(--sidebar-bg);
+      border: 1px solid var(--sidebar-bg);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: 0.2s;
+      font-weight: bold;
+    }
+
+    button.btn-secundario:hover {
+      background: #E2E8F0;
+    }
+
+    button.btn-small {
+      padding: 6px 12px;
+      font-size: 0.85em;
+    }
+
+    button.btn-edit {
+      background: #E2E8F0;
+      color: #333;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 600px;
+    }
+
+    th,
+    td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9em;
+    }
+
+    th {
+      background: #F8F4EC;
+      color: var(--sidebar-bg);
+      font-weight: bold;
+    }
+
+    /* DASHBOARD */
+    .filter-bar {
+      display: flex;
+      gap: 15px;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      background: #F8F4EC;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      border: 1px solid var(--border);
+    }
+
+    .kpi-container {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 25px;
+      flex-wrap: wrap;
+    }
+
+    /* Ajuste no min-width para acomodar 4 cards suavemente */
+    .kpi-card {
+      flex: 1;
+      min-width: 160px;
+      background: var(--card-bg);
+      padding: 20px;
+      border-radius: 10px;
+      border-left: 5px solid var(--primary);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .kpi-card h4 {
+      font-size: 0.85em;
+      color: #777;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+    }
+
+    .kpi-card .value {
+      font-size: 1.6em;
+      font-weight: bold;
+      color: var(--sidebar-bg);
+    }
+
+    #global-loader {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(253, 249, 241, 0.95);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      display: none;
+    }
+
+    .spinner {
+      border: 4px solid #E0D6C8;
+      border-top: 4px solid var(--primary);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin-bottom: 15px;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        position: fixed;
+        left: -250px;
+        height: 100%;
+        z-index: 1000;
+        box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+      }
+
+      .sidebar.open {
+        left: 0;
+      }
+
+      .menu-toggle {
+        display: block;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="global-loader">
+    <div class="spinner"></div>
+    <h3 style="color: var(--sidebar-bg)" id="loader-text">Carregando...</h3>
+  </div>
+
+  <!-- TELA DE LOGIN -->
+  <div id="screen-login">
+    <div class="login-card">
+      <img src="https://i.postimg.cc/6pDhzpkp/Golden-goose-icon-3D-animation-202608161416-removebg-preview.png"
+        alt="MGOO Logo">
+      <h2 style="color: var(--primary); margin-bottom: 5px;">MGOO</h2>
+      <p style="color: #777; margin-bottom: 25px; font-size: 0.9em;">Acesso ao Sistema</p>
+
+      <div class="form-group">
+        <label>E-mail</label>
+        <input type="email" id="login-email" placeholder="seu@email.com">
+      </div>
+      <div class="form-group">
+        <label>Senha</label>
+        <input type="password" id="login-senha" placeholder="****">
+      </div>
+      <button class="btn-primary" onclick="efetuarLogin()" id="btnLogin">Entrar</button>
+      <p id="login-msg" style="color: red; margin-top: 15px; font-size: 0.9em; font-weight: bold;"></p>
+
+      <!-- Link de configuração de API (oculto se rodando direto dentro do GAS) -->
+      <div id="cfg-api-link-container" style="margin-top: 20px; display: none;">
+        <a href="#" onclick="abrirConfigAPI()"
+          style="color: var(--primary); font-size: 0.85em; text-decoration: none; font-weight: bold;"><i
+            class="fas fa-cog"></i> Configurar URL da API</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE CONFIGURAÇÃO DA API -->
+  <div id="modal-config-api"
+    style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:99999; justify-content:center; align-items:center; backdrop-filter: blur(3px);">
+    <div class="card"
+      style="max-width:400px; width:90%; background:var(--card-bg); padding:30px; text-align:center; box-shadow: 0 15px 35px rgba(0,0,0,0.2); border-radius: 12px; margin: 0;">
+      <h3
+        style="color:var(--primary); margin-bottom:15px; border-bottom: 2px solid var(--primary); padding-bottom: 5px; display: inline-block;">
+        <i class="fas fa-cog"></i> Configuração da API</h3>
+      <p style="font-size:0.9em; color:#666; margin-bottom:20px; line-height: 1.4;">Insira a URL de execução do seu
+        Google Apps Script Web App para conectar o aplicativo à planilha.</p>
+      <div class="form-group" style="text-align:left;">
+        <label>URL do Web App (Apps Script)</label>
+        <input type="text" id="cfg-api-url" placeholder="https://script.google.com/macros/s/.../exec"
+          style="background:#fff;">
+      </div>
+      <div style="display:flex; gap:10px; margin-top:20px;">
+        <button class="btn-primary" onclick="salvarConfigAPI()" style="padding:10px;">Salvar</button>
+        <button class="btn-secundario" onclick="fecharConfigAPI()" style="flex:1; padding:10px;">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar" style="display:none;">
+    <div class="sidebar-header">
+      <img src="https://i.postimg.cc/6pDhzpkp/Golden-goose-icon-3D-animation-202608161416-removebg-preview.png"
+        alt="MGOO Logo">
+      <h2>MGOO</h2>
+    </div>
+    <ul class="nav-links">
+      <li id="menu-dash" onclick="navigate('dashboard')" style="display:none;"><i class="fas fa-chart-line"></i>
+        Dashboard</li>
+      <li id="menu-caixa" class="active" onclick="navigate('caixa')"><i class="fas fa-cash-register"></i> Caixa /
+        Fechamento</li>
+      <li id="menu-hist" onclick="navigate('historico')"><i class="fas fa-list"></i> Meu Histórico</li>
+      <li id="menu-users" onclick="navigate('usuarios')" style="display:none;"><i class="fas fa-users"></i> Usuários
+      </li>
+    </ul>
+    <div class="user-info">
+      <span id="lbl-username">...</span><br><small id="lbl-perfil">...</small>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content" id="main-content">
+    <div class="topbar">
+      <div style="display: flex; align-items: center;">
+        <i class="fas fa-bars menu-toggle" onclick="toggleSidebar()"></i>
+        <h3 style="color: var(--sidebar-bg); margin:0;" id="topbar-title">Fechamento de Caixa</h3>
+      </div>
+      <button class="btn-secundario btn-small" onclick="sair()"><i class="fas fa-sign-out-alt"></i> Sair</button>
+    </div>
+
+    <div class="content-area">
+      <!-- TELA 1: DASHBOARD -->
+      <div id="screen-dashboard" class="screen">
+        <h3 class="section-title">Visão Geral</h3>
+        <div class="filter-bar">
+          <div class="form-group" style="margin: 0; flex: 1; min-width: 150px;">
+            <label>Filtrar por Loja</label>
+            <select id="filtro-loja" onchange="renderDashboard()">
+              <option value="Todas">Todas as Lojas</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin: 0; flex: 1; min-width: 130px;">
+            <label>Data Início</label>
+            <input type="date" id="filtro-inicio" onchange="renderDashboard()">
+          </div>
+          <div class="form-group" style="margin: 0; flex: 1; min-width: 130px;">
+            <label>Data Fim</label>
+            <input type="date" id="filtro-fim" onchange="renderDashboard()">
+          </div>
+          <div style="margin-bottom: 2px;">
+            <button class="btn-secundario" onclick="limparFiltros()"><i class="fas fa-eraser"></i> Limpar</button>
+          </div>
+        </div>
+
+        <!-- 4 KPIs AGORA -->
+        <div class="kpi-container">
+          <div class="kpi-card">
+            <h4>Faturamento Total</h4>
+            <div class="value" id="kpi-total">R$ 0,00</div>
+          </div>
+          <div class="kpi-card" style="border-left-color: #4CAF50;">
+            <h4>Pix</h4>
+            <div class="value" id="kpi-pix">R$ 0,00</div>
+          </div>
+          <div class="kpi-card" style="border-left-color: #2196F3;">
+            <h4>Cartão</h4>
+            <div class="value" id="kpi-cartao">R$ 0,00</div>
+          </div>
+          <div class="kpi-card" style="border-left-color: #FF9800;">
+            <h4>Dinheiro</h4>
+            <div class="value" id="kpi-dinheiro">R$ 0,00</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h4>Evolução do Faturamento</h4><canvas id="chartTempo" height="80"></canvas>
+        </div>
+        <div class="card">
+          <h4>Faturamento por Loja</h4><canvas id="chartLojas" height="80"></canvas>
+        </div>
+      </div>
+
+      <!-- TELA 2: CAIXA -->
+      <div id="screen-caixa" class="screen active">
+        <div class="card" style="max-width: 500px; margin: 0 auto;">
+          <h3 class="section-title" id="form-caixa-title">Novo Fechamento</h3>
+          <input type="hidden" id="fechamento-id" value="">
+          <div class="form-group"><label>Loja</label><select id="loja"></select></div>
+          <div class="row">
+            <div class="col form-group"><label>Data</label><input type="date" id="dataRef" required></div>
+          </div>
+          <div class="row">
+            <div class="col form-group"><label>Entrada</label><input type="time" id="entrada"></div>
+            <div class="col form-group"><label>Saída</label><input type="time" id="saida"></div>
+          </div>
+          <div class="form-group"><label>Pix (R$)</label><input type="text" id="pix" class="dinheiro"
+              inputmode="decimal" placeholder="0,00"></div>
+          <div class="form-group"><label>Dinheiro (R$)</label><input type="text" id="dinheiro" class="dinheiro"
+              inputmode="decimal" placeholder="0,00"></div>
+          <div class="form-group"><label>Cartão (R$)</label><input type="text" id="cartao" class="dinheiro"
+              inputmode="decimal" placeholder="0,00"></div>
+          <hr style="border:0; border-top:1px solid #eee; margin:20px 0;">
+          <div class="row">
+            <div class="col form-group"><label>Despesa (R$)</label><input type="text" id="sangria" class="dinheiro"
+                inputmode="decimal" placeholder="0,00"></div>
+            <div class="col form-group"><label>Motivo Despesa</label><input type="text" id="obsSangria"
+                placeholder="Ex: Material"></div>
+          </div>
+          <div class="form-group" style="margin-top: 15px;"><label>Total Apurado (R$)</label><input type="text"
+              id="totalCalc" readonly value="0,00" style="font-weight: bold; font-size: 1.2em;"></div>
+          <button onclick="salvarFechamentoBtn()" id="btnSalvarCaixa" class="btn-primary"
+            style="margin-top: 10px;">Salvar Lançamento</button>
+        </div>
+      </div>
+
+      <!-- TELA 3: HISTÓRICO -->
+      <div id="screen-historico" class="screen">
+        <h3 class="section-title">Histórico de Fechamentos</h3>
+        <div class="card" style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Loja</th>
+                <th>Usuário</th>
+                <th>Ent/Sai</th>
+                <th>Total (R$)</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-historico"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TELA 4: USUÁRIOS -->
+      <div id="screen-usuarios" class="screen">
+        <div class="row" style="align-items: center; margin-bottom: 20px;">
+          <h3 class="section-title" style="margin:0;">Gestão de Usuários</h3>
+          <button class="btn-primary" style="width: auto; margin-left: auto; padding: 8px 15px;"
+            onclick="prepararFormUsuario()"><i class="fas fa-plus"></i> Novo Usuário</button>
+        </div>
+        <div id="form-usuario-container" class="card" style="display:none; background:#F8F4EC;">
+          <div class="row">
+            <div class="col form-group"><label>E-mail</label><input type="email" id="u-email"></div>
+            <div class="col form-group"><label>Nome</label><input type="text" id="u-nome"></div>
+            <div class="col form-group"><label>Senha Acesso</label><input type="text" id="u-senha"></div>
+          </div>
+          <div class="row">
+            <div class="col form-group"><label>Perfil</label><select id="u-perfil">
+                <option>Lojista</option>
+                <option>ADM</option>
+              </select></div>
+            <div class="col form-group"><label>Loja</label><select id="u-loja"></select></div>
+          </div>
+          <div class="row">
+            <div class="col form-group"><label>Entrada</label><input type="time" id="u-ent"></div>
+            <div class="col form-group"><label>Saída</label><input type="time" id="u-sai"></div>
+            <div class="col form-group"><label>Ativo</label><select id="u-ativo">
+                <option>Sim</option>
+                <option>Não</option>
+              </select></div>
+          </div>
+          <button class="btn-primary" onclick="salvarUsuarioBtn()">Salvar Usuário</button>
+        </div>
+        <div class="card" style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>E-mail</th>
+                <th>Perfil</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-usuarios"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    var appData = {};
+
+    window.onload = function () {
+      aplicarMascaras();
+
+      // Captura a URL da API se passada por parâmetro (ex: ?api=https://...)
+      var apiParam = getQueryParam('api');
+      if (apiParam) {
+        localStorage.setItem('mgoo_api_url', apiParam);
+        // Limpa o parâmetro da URL visualmente para manter a barra de endereços limpa
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+
+      // Exibe o link de configuração da API se rodando fora do iframe do Apps Script
+      var isInsideGAS = (window.google && google.script && google.script.run);
+      if (!isInsideGAS) {
+        document.getElementById('cfg-api-link-container').style.display = 'block';
+      }
+
+      var emailSalvo = localStorage.getItem('mgoo_email');
+      var senhaSalva = localStorage.getItem('mgoo_senha');
+
+      if (emailSalvo && senhaSalva) {
+        document.getElementById('screen-login').style.display = 'none';
+        showLoader("Autenticando...");
+        executeAction('fazerLogin', { email: emailSalvo, senha: senhaSalva })
+          .then(initApp)
+          .catch(falhaLoginSilencioso);
+      }
+    };
+
+    function getQueryParam(name) {
+      var urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get(name);
+    }
+
+    async function executeAction(action, data = {}) {
+      // Se estiver rodando dentro do Apps Script (iframe)
+      if (window.google && google.script && google.script.run) {
+        return new Promise((resolve, reject) => {
+          var runner = google.script.run
+            .withSuccessHandler(resolve)
+            .withFailureHandler(reject);
+
+          if (action === 'fazerLogin') {
+            runner.fazerLogin(data.email, data.senha);
+          } else if (action === 'getAppDataForUser') {
+            runner.getAppDataForUser(data.email);
+          } else if (action === 'salvarFechamento') {
+            runner.salvarFechamento(data.dados);
+          } else if (action === 'salvarUsuario') {
+            runner.salvarUsuario(data.dados);
+          } else {
+            reject(new Error("Ação desconhecida para o runner local: " + action));
+          }
+        });
+      }
+
+      // Standalone (Vercel, Netlify, Local) - usa fetch()
+      var apiUrl = localStorage.getItem('mgoo_api_url');
+      if (!apiUrl) {
+        abrirConfigAPI("Por favor, configure a URL da API do Google Apps Script.");
+        throw new Error("URL da API não configurada.");
+      }
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/plain;charset=utf-8'
+        },
+        body: JSON.stringify({ action: action, ...data })
+      });
+
+      if (!response.ok) {
+        throw new Error("Erro na rede: " + response.statusText);
+      }
+
+      const res = await response.json();
+      if (!res.success) {
+        throw new Error(res.error || "Erro desconhecido na API.");
+      }
+      return res.data;
+    }
+
+    function abrirConfigAPI(msg) {
+      if (msg) alert(msg);
+      var currentUrl = localStorage.getItem('mgoo_api_url') || '';
+      document.getElementById('cfg-api-url').value = currentUrl;
+      document.getElementById('modal-config-api').style.display = 'flex';
+    }
+
+    function fecharConfigAPI() {
+      document.getElementById('modal-config-api').style.display = 'none';
+    }
+
+    function salvarConfigAPI() {
+      var url = document.getElementById('cfg-api-url').value.trim();
+      if (!url) {
+        alert("A URL não pode ser vazia.");
+        return;
+      }
+      if (!url.startsWith("https://script.google.com/")) {
+        alert("A URL deve ser do domínio do Google Apps Script (https://script.google.com/...)");
+        return;
+      }
+      localStorage.setItem('mgoo_api_url', url);
+      alert("URL da API configurada com sucesso!");
+      fecharConfigAPI();
+
+      var emailSalvo = localStorage.getItem('mgoo_email');
+      var senhaSalva = localStorage.getItem('mgoo_senha');
+      if (emailSalvo && senhaSalva) {
+        showLoader("Autenticando...");
+        executeAction('fazerLogin', { email: emailSalvo, senha: senhaSalva })
+          .then(initApp)
+          .catch(falhaLoginSilencioso);
+      }
+    }
+
+    function efetuarLogin() {
+      var email = document.getElementById('login-email').value;
+      var senha = document.getElementById('login-senha').value;
+      var btn = document.getElementById('btnLogin');
+
+      if (!email || !senha) { document.getElementById('login-msg').innerText = "Preencha e-mail e senha."; return; }
+
+      btn.disabled = true; btn.innerText = "Verificando...";
+      document.getElementById('login-msg').innerText = "";
+
+      executeAction('fazerLogin', { email: email, senha: senha })
+        .then(function (data) {
+          localStorage.setItem('mgoo_email', email);
+          localStorage.setItem('mgoo_senha', senha);
+          initApp(data);
+        })
+        .catch(function (err) {
+          document.getElementById('login-msg').innerText = err.message || err.toString();
+          btn.disabled = false; btn.innerText = "Entrar";
+        });
+    }
+
+    function falhaLoginSilencioso(err) {
+      hideLoader();
+      localStorage.removeItem('mgoo_email'); localStorage.removeItem('mgoo_senha');
+      document.getElementById('screen-login').style.display = 'flex';
+      document.getElementById('login-msg').innerText = "Sessão expirada. Faça login novamente.";
+    }
+
+    function sair() {
+      localStorage.removeItem('mgoo_email'); localStorage.removeItem('mgoo_senha');
+      location.reload();
+    }
+
+    function initApp(data) {
+      appData = data;
+      hideLoader();
+
+      document.getElementById('screen-login').style.display = 'none';
+      document.getElementById('sidebar').style.display = 'flex';
+      document.getElementById('main-content').style.display = 'flex';
+
+      document.getElementById('lbl-username').innerText = data.user.nome;
+      document.getElementById('lbl-perfil').innerText = data.user.perfil;
+
+      if (data.user.perfil === 'ADM') {
+        document.getElementById('menu-dash').style.display = 'flex';
+        document.getElementById('menu-users').style.display = 'flex';
+      } else {
+        document.getElementById('menu-hist').innerHTML = '<i class="fas fa-list"></i> Meus Lançamentos';
+      }
+
+      var selLoja = document.getElementById('loja');
+      var uLoja = document.getElementById('u-loja');
+      var fLoja = document.getElementById('filtro-loja');
+
+      selLoja.innerHTML = ''; uLoja.innerHTML = ''; fLoja.innerHTML = '<option value="Todas">Todas as Lojas</option>';
+
+      if (data.user.perfil === 'ADM') { uLoja.add(new Option('Todas', 'Todas')); }
+      data.lojas.forEach(function (l) {
+        selLoja.add(new Option(l, l));
+        uLoja.add(new Option(l, l));
+        fLoja.add(new Option(l, l));
+      });
+
+      prepararFormCaixa();
+      renderTabelaHistorico();
+      if (data.user.perfil === 'ADM') renderDashboard();
+
+      if (data.user.perfil === 'ADM') navigate('dashboard'); else navigate('caixa');
+    }
+
+    function showLoader(text) { document.getElementById('loader-text').innerText = text; document.getElementById('global-loader').style.display = 'flex'; }
+    function hideLoader() { document.getElementById('global-loader').style.display = 'none'; }
+
+    function navigate(screenId) {
+      document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-links li').forEach(el => el.classList.remove('active'));
+      document.getElementById('screen-' + screenId).classList.add('active');
+
+      var title = "Sistema";
+      if (screenId === 'dashboard') { document.getElementById('menu-dash').classList.add('active'); title = "Dashboard MGOO"; }
+      if (screenId === 'caixa') { document.getElementById('menu-caixa').classList.add('active'); title = "Controle de Caixa"; }
+      if (screenId === 'historico') { document.getElementById('menu-hist').classList.add('active'); title = "Histórico de Lançamentos"; }
+      if (screenId === 'usuarios') { document.getElementById('menu-users').classList.add('active'); title = "Gestão de Equipe"; }
+      document.getElementById('topbar-title').innerText = title;
+
+      if (window.innerWidth <= 768) {
+        document.getElementById('sidebar').classList.remove('open');
+      }
+    }
+    function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+
+    function calcularTotalTempoReal() {
+      var p = parseFloat((document.getElementById('pix').value || '0').replace(/\./g, '').replace(',', '.')) || 0;
+      var c = parseFloat((document.getElementById('cartao').value || '0').replace(/\./g, '').replace(',', '.')) || 0;
+      var d = parseFloat((document.getElementById('dinheiro').value || '0').replace(/\./g, '').replace(',', '.')) || 0;
+      var s = parseFloat((document.getElementById('sangria').value || '0').replace(/\./g, '').replace(',', '.')) || 0;
+      document.getElementById('totalCalc').value = (p + c + d - s).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+    }
+
+    function prepararFormCaixa(f = null) {
+      if (f) {
+        document.getElementById('form-caixa-title').innerText = "Editar Fechamento #" + f.id;
+        document.getElementById('fechamento-id').value = f.id;
+        document.getElementById('loja').value = f.loja;
+        document.getElementById('dataRef').value = f.dataRef;
+        document.getElementById('entrada').value = f.entrada;
+        document.getElementById('saida').value = f.saida;
+        document.getElementById('pix').value = f.pix;
+        document.getElementById('dinheiro').value = f.dinheiro;
+        document.getElementById('cartao').value = f.cartao;
+        document.getElementById('sangria').value = f.sangria;
+        document.getElementById('obsSangria').value = f.obsSangria;
+        document.getElementById('btnSalvarCaixa').innerText = "Atualizar Lançamento";
+      } else {
+        document.getElementById('form-caixa-title').innerText = "Novo Fechamento";
+        document.getElementById('fechamento-id').value = "";
+        document.getElementById('loja').value = appData.user.lojaPadrao;
+        var hoje = new Date(); document.getElementById('dataRef').value = new Date(hoje.getTime() - (hoje.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+        document.getElementById('entrada').value = appData.user.entradaPadrao;
+        document.getElementById('saida').value = appData.user.saidaPadrao;
+        ['pix', 'dinheiro', 'cartao', 'sangria', 'obsSangria'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('btnSalvarCaixa').innerText = "Salvar Lançamento";
+      }
+      calcularTotalTempoReal();
+    }
+
+    function editarFechamento(id) {
+      var f = appData.fechamentos.find(x => x.id.toString() === id.toString());
+      if (f) { prepararFormCaixa(f); navigate('caixa'); }
+    }
+
+    function salvarFechamentoBtn() {
+      var btn = document.getElementById('btnSalvarCaixa');
+      var sangriaVal = document.getElementById('sangria').value;
+      var obsVal = document.getElementById('obsSangria').value;
+
+      if (sangriaVal && sangriaVal !== "0,00" && !obsVal.trim()) { alert("Por favor, preencha o Motivo da Despesa."); return; }
+
+      btn.disabled = true; btn.innerText = 'Salvando...';
+
+      var payload = {
+        id: document.getElementById('fechamento-id').value, loja: document.getElementById('loja').value,
+        dataRef: document.getElementById('dataRef').value, entrada: document.getElementById('entrada').value,
+        saida: document.getElementById('saida').value, pix: document.getElementById('pix').value || '0,00',
+        dinheiro: document.getElementById('dinheiro').value || '0,00', cartao: document.getElementById('cartao').value || '0,00',
+        sangria: sangriaVal || '0,00', obsSangria: obsVal, userEmail: appData.user.email
+      };
+
+      executeAction('salvarFechamento', { dados: payload })
+        .then(function (msg) {
+          alert(msg);
+          return executeAction('getAppDataForUser', { email: appData.user.email });
+        })
+        .then(function (d) {
+          appData = d;
+          renderTabelaHistorico();
+          if (appData.user.perfil === 'ADM') renderDashboard();
+          prepararFormCaixa();
+          navigate('historico');
+          btn.disabled = false;
+        })
+        .catch(function (err) {
+          alert('Erro: ' + (err.message || err.toString()));
+          btn.disabled = false;
+          btn.innerText = 'Tentar Novamente';
+        });
+    }
+
+    function renderTabelaHistorico() {
+      var tbody = document.getElementById('tbody-historico'); tbody.innerHTML = '';
+      var strHoje = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+      appData.fechamentos.forEach(function (f) {
+        var dBR = f.dataRef.split('-').reverse().join('/');
+        var permiteEditar = (appData.user.perfil === 'ADM' || f.dataRef === strHoje);
+        var acoesHtml = permiteEditar ? `<button class="btn-small btn-edit" onclick="editarFechamento('${f.id}')"><i class="fas fa-edit"></i> Editar</button>` : `<span style="font-size: 0.85em; color: #888;"><i class="fas fa-lock"></i> Fechado</span>`;
+        tbody.innerHTML += `<tr><td>${dBR}</td><td>${f.loja}</td><td>${f.usuario.split('@')[0]}</td><td>${f.entrada} - ${f.saida}</td><td style="font-weight:bold; color:var(--primary)">R$ ${f.total}</td><td>${acoesHtml}</td></tr>`;
+      });
+    }
+
+    // GESTÃO DE USUÁRIOS
+    function prepararFormUsuario(u = null) {
+      document.getElementById('form-usuario-container').style.display = 'block';
+      if (u) {
+        document.getElementById('u-email').value = u.email; document.getElementById('u-email').disabled = true;
+        document.getElementById('u-nome').value = u.nome; document.getElementById('u-perfil').value = u.perfil;
+        document.getElementById('u-loja').value = u.lojaPadrao; document.getElementById('u-ent').value = u.entradaPadrao;
+        document.getElementById('u-sai').value = u.saidaPadrao; document.getElementById('u-ativo').value = u.ativo;
+        document.getElementById('u-senha').value = u.senha || '';
+      } else {
+        document.getElementById('u-email').value = ''; document.getElementById('u-email').disabled = false;
+        document.getElementById('u-nome').value = ''; document.getElementById('u-senha').value = '';
+        document.getElementById('u-ent').value = '09:00'; document.getElementById('u-sai').value = '18:00';
+      }
+    }
+
+    function editarUsuario(email) { var u = appData.usuarios.find(x => x.email === email); if (u) prepararFormUsuario(u); }
+
+    function salvarUsuarioBtn() {
+      var payload = {
+        email: document.getElementById('u-email').value, nome: document.getElementById('u-nome').value,
+        perfil: document.getElementById('u-perfil').value, lojaPadrao: document.getElementById('u-loja').value,
+        entradaPadrao: document.getElementById('u-ent').value, saidaPadrao: document.getElementById('u-sai').value,
+        ativo: document.getElementById('u-ativo').value, senha: document.getElementById('u-senha').value
+      };
+
+      if (!payload.email || !payload.nome || !payload.senha) { alert('E-mail, Nome e Senha são obrigatórios.'); return; }
+      showLoader("Salvando...");
+
+      executeAction('salvarUsuario', { dados: payload })
+        .then(function (msg) {
+          alert(msg);
+          document.getElementById('form-usuario-container').style.display = 'none';
+          return executeAction('getAppDataForUser', { email: appData.user.email });
+        })
+        .then(function (d) {
+          appData = d;
+          renderTabelaUsuarios();
+          hideLoader();
+        })
+        .catch(function (err) {
+          alert('Erro: ' + (err.message || err.toString()));
+          hideLoader();
+        });
+    }
+
+    function renderTabelaUsuarios() {
+      var tbody = document.getElementById('tbody-usuarios'); tbody.innerHTML = '';
+      appData.usuarios.forEach(function (u) {
+        var corStatus = u.ativo === 'Sim' ? 'green' : 'red';
+        tbody.innerHTML += `<tr><td>${u.nome}</td><td>${u.email}</td><td>${u.perfil}</td><td style="color:${corStatus}; font-weight:bold;">${u.ativo}</td><td><button class="btn-small btn-edit" onclick="editarUsuario('${u.email}')"><i class="fas fa-edit"></i> Editar</button></td></tr>`;
+      });
+    }
+
+    function limparFiltros() {
+      document.getElementById('filtro-loja').value = 'Todas';
+      document.getElementById('filtro-inicio').value = '';
+      document.getElementById('filtro-fim').value = '';
+      renderDashboard();
+    }
+
+    var chartLojasInst = null, chartTempoInst = null;
+    function renderDashboard() {
+      if (appData.user.perfil !== 'ADM') return;
+
+      var fLoja = document.getElementById('filtro-loja').value;
+      var fInicio = document.getElementById('filtro-inicio').value;
+      var fFim = document.getElementById('filtro-fim').value;
+
+      var tPix = 0, tCartao = 0, tDinheiro = 0, tSangria = 0, vendasLoja = {}, vendasTempo = {};
+
+      appData.fechamentos.forEach(function (f) {
+        if (fLoja !== 'Todas' && f.loja !== fLoja) return;
+        if (fInicio && f.dataRef < fInicio) return;
+        if (fFim && f.dataRef > fFim) return;
+
+        var p = parseFloat(f.pix.replace(/\./g, '').replace(',', '.'));
+        var c = parseFloat(f.cartao.replace(/\./g, '').replace(',', '.'));
+        var d = parseFloat(f.dinheiro.replace(/\./g, '').replace(',', '.'));
+        var s = parseFloat(f.sangria.replace(/\./g, '').replace(',', '.'));
+
+        tPix += p; tCartao += c; tDinheiro += d; tSangria += s;
+        var tot = p + c + d - s;
+
+        if (!vendasLoja[f.loja]) vendasLoja[f.loja] = 0; vendasLoja[f.loja] += tot;
+        if (!vendasTempo[f.dataRef]) vendasTempo[f.dataRef] = 0; vendasTempo[f.dataRef] += tot;
+      });
+
+      // Atualiza os 4 KPIs
+      document.getElementById('kpi-total').innerText = 'R$ ' + (tPix + tCartao + tDinheiro - tSangria).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+      document.getElementById('kpi-pix').innerText = 'R$ ' + tPix.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+      document.getElementById('kpi-cartao').innerText = 'R$ ' + tCartao.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+      document.getElementById('kpi-dinheiro').innerText = 'R$ ' + tDinheiro.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+
+      var dates = Object.keys(vendasTempo).sort();
+      var ctxT = document.getElementById('chartTempo').getContext('2d');
+      if (chartTempoInst) chartTempoInst.destroy();
+      chartTempoInst = new Chart(ctxT, { type: 'line', data: { labels: dates.map(d => d.split('-').reverse().slice(0, 2).join('/')), datasets: [{ label: 'Faturamento R$', data: dates.map(d => vendasTempo[d]), borderColor: '#4A3B32', fill: true, tension: 0.3 }] }, options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } } });
+
+      var ctxL = document.getElementById('chartLojas').getContext('2d');
+      if (chartLojasInst) chartLojasInst.destroy();
+      chartLojasInst = new Chart(ctxL, { type: 'bar', data: { labels: Object.keys(vendasLoja), datasets: [{ label: 'Faturamento R$', data: Object.values(vendasLoja), backgroundColor: '#8C6A48' }] }, options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } } });
+    }
+
+    function aplicarMascaras() {
+      document.querySelectorAll('.dinheiro').forEach(function (c) {
+        c.addEventListener('input', function (e) {
+          formatarMoedaInput(e.target);
+        });
+      });
+    }
+
+    function formatarMoedaInput(input) {
+      var value = input.value;
+      var selStart = input.selectionStart;
+
+      // Conta quantos dígitos existem antes do cursor no valor atual
+      var digitsBeforeCursor = 0;
+      for (var i = 0; i < selStart; i++) {
+        if (/\d/.test(value[i])) {
+          digitsBeforeCursor++;
+        }
+      }
+
+      var clean = value.replace(/\D/g, '');
+      if (clean === '') {
+        input.value = '';
+        calcularTotalTempoReal();
+        return;
+      }
+
+      var num = parseInt(clean) / 100;
+      var formatted = num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+      input.value = formatted;
+
+      // Encontra a nova posição do cursor mantendo o mesmo número de dígitos à esquerda
+      var newSel = 0;
+      var digitsSeen = 0;
+      while (newSel < formatted.length && digitsSeen < digitsBeforeCursor) {
+        if (/\d/.test(formatted[newSel])) {
+          digitsSeen++;
+        }
+        newSel++;
+      }
+
+      // Se excluímos o último dígito disponível, posiciona ao fim
+      var totalDigits = formatted.replace(/\D/g, '').length;
+      if (digitsBeforeCursor > totalDigits) {
+        newSel = formatted.length;
+      }
+
+      input.setSelectionRange(newSel, newSel);
+      calcularTotalTempoReal();
+    }
+  </script>
+</body>
+
+</html>
