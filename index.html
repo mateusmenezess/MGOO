@@ -410,7 +410,7 @@
       .menu-toggle {
         display: block;
       }
-      
+
       /* Ajustes de responsividade mobile */
       .topbar {
         padding-top: calc(env(safe-area-inset-top, 0px) + 25px);
@@ -418,6 +418,7 @@
         padding-left: 15px;
         padding-right: 15px;
       }
+
       .topbar h3 {
         font-size: 1rem;
         max-width: 140px;
@@ -425,53 +426,59 @@
         overflow: hidden;
         text-overflow: ellipsis;
       }
+
       .topbar button {
         padding: 6px 10px;
         font-size: 0.8em;
       }
-      
+
       .content-area {
         padding: 15px;
       }
-      
+
       .filter-bar {
         flex-direction: column;
         align-items: stretch;
         gap: 10px;
         padding: 12px;
       }
+
       .filter-bar .form-group {
         width: 100%;
         min-width: unset !important;
         margin-bottom: 5px;
       }
+
       .filter-bar button {
         width: 100%;
         margin-top: 5px;
         padding: 12px;
       }
-      
+
       .kpi-container {
         gap: 10px;
         margin-bottom: 15px;
       }
+
       .kpi-card {
         padding: 12px 15px;
         min-width: calc(50% - 5px) !important;
         flex: unset;
       }
+
       .kpi-card h4 {
         font-size: 0.75em;
       }
+
       .kpi-card .value {
         font-size: 1.25em;
       }
-      
+
       .card {
         padding: 15px;
         margin-bottom: 15px;
       }
-      
+
       table {
         min-width: 500px;
       }
@@ -520,7 +527,8 @@
       <li id="menu-caixa" class="active" onclick="navigate('caixa')"><i class="fas fa-cash-register"></i> Caixa /
         Fechamento</li>
       <li id="menu-hist" onclick="navigate('historico')"><i class="fas fa-list"></i> Meu Histórico</li>
-      <li id="menu-gastos" onclick="navigate('gastos')" style="display:none;"><i class="fas fa-receipt"></i> Lançar Gastos</li>
+      <li id="menu-gastos" onclick="navigate('gastos')" style="display:none;"><i class="fas fa-receipt"></i> Lançar
+        Gastos</li>
       <li id="menu-users" onclick="navigate('usuarios')" style="display:none;"><i class="fas fa-users"></i> Usuários
       </li>
     </ul>
@@ -727,7 +735,7 @@
           </div>
           <button class="btn-primary" onclick="salvarCustoBtn()" id="btnSalvarCusto">Salvar Gasto</button>
         </div>
-        
+
         <div class="card" style="overflow-x: auto;">
           <h4>Histórico de Gastos</h4>
           <table>
@@ -926,15 +934,15 @@
       if (screenId === 'dashboard') { document.getElementById('menu-dash').classList.add('active'); title = "Dashboard MGOO"; }
       if (screenId === 'caixa') { document.getElementById('menu-caixa').classList.add('active'); title = "Controle de Caixa"; }
       if (screenId === 'historico') { document.getElementById('menu-hist').classList.add('active'); title = "Histórico de Lançamentos"; }
-      if (screenId === 'gastos') { 
-        document.getElementById('menu-gastos').classList.add('active'); 
-        title = "Gestão de Gastos"; 
+      if (screenId === 'gastos') {
+        document.getElementById('menu-gastos').classList.add('active');
+        title = "Gestão de Gastos";
         prepararFormGasto();
         renderTabelaGastos();
       }
-      if (screenId === 'usuarios') { 
-        document.getElementById('menu-users').classList.add('active'); 
-        title = "Gestão de Equipe"; 
+      if (screenId === 'usuarios') {
+        document.getElementById('menu-users').classList.add('active');
+        title = "Gestão de Equipe";
         renderTabelaUsuarios();
       }
       document.getElementById('topbar-title').innerText = title;
@@ -1100,6 +1108,27 @@
 
       var fLoja = document.getElementById('filtro-loja').value;
       var fInicio = document.getElementById('filtro-inicio').value;
+      var fFim = document.getElementById('filtro-fim').value;
+
+      var tPix = 0, tCartao = 0, tDinheiro = 0, tSangria = 0, vendasLoja = {}, vendasTempo = {};
+
+      appData.fechamentos.forEach(function (f) {
+        if (fLoja !== 'Todas' && f.loja !== fLoja) return;
+        if (fInicio && f.dataRef < fInicio) return;
+        if (fFim && f.dataRef > fFim) return;
+
+        var p = parseFloat(f.pix.replace(/\./g, '').replace(',', '.'));
+        var c = parseFloat(f.cartao.replace(/\./g, '').replace(',', '.'));
+        var d = parseFloat(f.dinheiro.replace(/\./g, '').replace(',', '.'));
+        var s = parseFloat(f.sangria.replace(/\./g, '').replace(',', '.'));
+
+        tPix += p; tCartao += c; tDinheiro += d; tSangria += s;
+        var tot = p + c + d - s;
+
+        if (!vendasLoja[f.loja]) vendasLoja[f.loja] = 0; vendasLoja[f.loja] += tot;
+        if (!vendasTempo[f.dataRef]) vendasTempo[f.dataRef] = 0; vendasTempo[f.dataRef] += tot;
+      });
+
       var tCustos = 0;
       if (appData.custos) {
         appData.custos.forEach(function (c) {
@@ -1122,7 +1151,7 @@
       document.getElementById('kpi-cartao').innerText = 'R$ ' + tCartao.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
       document.getElementById('kpi-dinheiro').innerText = 'R$ ' + tDinheiro.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
       document.getElementById('kpi-custos-totais').innerText = 'R$ ' + tCustos.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
-      
+
       var cardMargem = document.getElementById('kpi-margem').parentElement;
       cardMargem.style.borderLeftColor = margemAbs >= 0 ? '#9C27B0' : '#d9534f';
       document.getElementById('kpi-margem').innerText = 'R$ ' + margemAbs.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
@@ -1136,17 +1165,17 @@
       if (uniqueDaysCount >= 40) {
         // Agrupa por mês (YYYY-MM)
         var vendasMes = {};
-        appData.fechamentos.forEach(function(f) {
+        appData.fechamentos.forEach(function (f) {
           if (fLoja !== 'Todas' && f.loja !== fLoja) return;
           if (fInicio && f.dataRef < fInicio) return;
           if (fFim && f.dataRef > fFim) return;
 
-          var p = parseFloat(f.pix.replace(/\./g, '').replace(',', '.')); 
+          var p = parseFloat(f.pix.replace(/\./g, '').replace(',', '.'));
           var c = parseFloat(f.cartao.replace(/\./g, '').replace(',', '.'));
-          var d = parseFloat(f.dinheiro.replace(/\./g, '').replace(',', '.')); 
+          var d = parseFloat(f.dinheiro.replace(/\./g, '').replace(',', '.'));
           var s = parseFloat(f.sangria.replace(/\./g, '').replace(',', '.'));
           var tot = p + c + d - s;
-          
+
           var mesKey = f.dataRef.substring(0, 7); // Ex: "2026-08"
           if (!vendasMes[mesKey]) vendasMes[mesKey] = 0;
           vendasMes[mesKey] += tot;
@@ -1167,22 +1196,22 @@
 
       var ctxT = document.getElementById('chartTempo').getContext('2d');
       if (chartTempoInst) chartTempoInst.destroy();
-      chartTempoInst = new Chart(ctxT, { 
-        type: 'line', 
-        data: { 
-          labels: labels, 
-          datasets: [{ 
-            label: 'Faturamento R$', 
-            data: dataPoints, 
-            borderColor: '#4A3B32', 
-            fill: true, 
-            tension: 0.3 
-          }] 
-        }, 
-        options: { 
-          plugins: { legend: { display: false } }, 
-          scales: { y: { beginAtZero: true } } 
-        } 
+      chartTempoInst = new Chart(ctxT, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Faturamento R$',
+            data: dataPoints,
+            borderColor: '#4A3B32',
+            fill: true,
+            tension: 0.3
+          }]
+        },
+        options: {
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true } }
+        }
       });
 
       var ctxL = document.getElementById('chartLojas').getContext('2d');
@@ -1202,8 +1231,8 @@
       var tbody = document.getElementById('tbody-gastos');
       tbody.innerHTML = '';
       if (!appData.custos) return;
-      
-      appData.custos.forEach(function(c) {
+
+      appData.custos.forEach(function (c) {
         var dBR = c.dataRef.split('-').reverse().join('/');
         tbody.innerHTML += `<tr>
           <td>${dBR}</td>
@@ -1218,15 +1247,15 @@
       var btn = document.getElementById('btnSalvarCusto');
       var val = document.getElementById('gasto-valor').value;
       var data = document.getElementById('gasto-data').value;
-      
+
       if (!val || val === "0,00" || !data) {
         alert("Por favor, preencha todos os campos obrigatórios.");
         return;
       }
-      
+
       btn.disabled = true;
       btn.innerText = 'Salvando...';
-      
+
       var payload = {
         dataRef: data,
         loja: document.getElementById('gasto-loja').value,
@@ -1234,13 +1263,13 @@
         categoria: document.getElementById('gasto-categoria').value,
         userEmail: appData.user.email
       };
-      
+
       executeAction('salvarCusto', { dados: payload })
-        .then(function(msg) {
+        .then(function (msg) {
           alert(msg);
           return executeAction('getAppDataForUser', { email: appData.user.email });
         })
-        .then(function(d) {
+        .then(function (d) {
           appData = d;
           renderTabelaGastos();
           if (appData.user.perfil === 'ADM') renderDashboard();
@@ -1248,7 +1277,7 @@
           btn.disabled = false;
           btn.innerText = 'Salvar Gasto';
         })
-        .catch(function(err) {
+        .catch(function (err) {
           alert('Erro: ' + (err.message || err.toString()));
           btn.disabled = false;
           btn.innerText = 'Tentar Novamente';
