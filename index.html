@@ -656,6 +656,7 @@
 
   <script>
     var appData = {};
+    var DEFAULT_API_URL = "https://script.google.com/macros/s/AKfycbyvug21BOsposbRQdwdDfOyifQ8e-Z9Rwr6Q8RflMMRnLtjxsyHd-8KFk23TSDEJdSD/exec";
 
     window.onload = function () {
       aplicarMascaras();
@@ -714,7 +715,7 @@
       }
 
       // Standalone (Vercel, Netlify, Local) - usa fetch()
-      var apiUrl = localStorage.getItem('mgoo_api_url');
+      var apiUrl = localStorage.getItem('mgoo_api_url') || DEFAULT_API_URL;
       if (!apiUrl) {
         abrirConfigAPI("Por favor, configure a URL da API do Google Apps Script.");
         throw new Error("URL da API não configurada.");
