@@ -86,7 +86,30 @@ function getAppDataForUser(emailUsuario, ss, usersData) {
     }
   }
 
-  return { user: currentUser, lojas: lojas, fechamentos: fechamentos, usuarios: currentUser.perfil === 'ADM' ? allUsers : [] };
+  var custos = [];
+  if (currentUser.perfil === 'ADM') {
+    var wsCustos = ss.getSheetByName('Custos');
+    if (!wsCustos) {
+      wsCustos = ss.insertSheet('Custos');
+      wsCustos.appendRow(['ID', 'Carimbo', 'Data_Ref', 'Loja', 'Valor', 'Categoria']);
+    }
+    var custosData = wsCustos.getDataRange().getValues();
+    for (var i = custosData.length - 1; i >= 1; i--) {
+      var rowC = custosData[i];
+      custos.push({
+        id: rowC[0], carimbo: formatarData(rowC[1]), dataRef: formatarData(rowC[2]),
+        loja: rowC[3], valor: formatarMoeda(rowC[4]), categoria: rowC[5]
+      });
+    }
+  }
+
+  return { 
+    user: currentUser, 
+    lojas: lojas, 
+    fechamentos: fechamentos, 
+    usuarios: currentUser.perfil === 'ADM' ? allUsers : [],
+    custos: custos
+  };
 }
 
 // --------------------------------------------------------
@@ -187,6 +210,40 @@ function formatarData(valor) {
 function formatarMoeda(valor) { return !valor ? "0,00" : parseFloat(valor).toFixed(2).replace('.', ','); }
 function converterParaNumero(valor) { return !valor ? 0.00 : parseFloat(valor.toString().replace(/\./g, '').replace(',', '.')); }
 
+function salvarCusto(dados) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var wsUsuarios = ss.getSheetByName('Usuarios');
+  var usersData = wsUsuarios.getDataRange().getValues();
+  var emailFormatado = dados.userEmail.toLowerCase().trim();
+  var isADM = false;
+  
+  for (var i = 1; i < usersData.length; i++) {
+    if (usersData[i][0].toString().toLowerCase().trim() === emailFormatado && usersData[i][2] === 'ADM' && usersData[i][6] === 'Sim') {
+      isADM = true;
+      break;
+    }
+  }
+  if (!isADM) {
+    throw new Error("Acesso negado. Apenas administradores ativos podem registrar gastos.");
+  }
+  
+  var ws = ss.getSheetByName('Custos');
+  if (!ws) {
+    ws = ss.insertSheet('Custos');
+    ws.appendRow(['ID', 'Carimbo', 'Data_Ref', 'Loja', 'Valor', 'Categoria']);
+  }
+  
+  var carimbo = new Date();
+  var valNum = converterParaNumero(dados.valor);
+  var lastRow = ws.getLastRow();
+  var newId = lastRow > 1 ? parseInt(ws.getRange(lastRow, 1).getValue()) + 1 : 1000;
+  
+  ws.appendRow([
+    newId, carimbo, dados.dataRef, dados.loja, valNum, dados.categoria
+  ]);
+  return "Gasto registrado com sucesso!";
+}
+
 function doPost(e) {
   var response = {};
   try {
@@ -202,6 +259,8 @@ function doPost(e) {
       result = salvarFechamento(payload.dados);
     } else if (action === 'salvarUsuario') {
       result = salvarUsuario(payload.dados);
+    } else if (action === 'salvarCusto') {
+      result = salvarCusto(payload.dados);
     } else {
       throw new Error("Ação não reconhecida: " + action);
     }

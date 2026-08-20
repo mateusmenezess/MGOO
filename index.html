@@ -400,6 +400,7 @@
         height: 100%;
         z-index: 1000;
         box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+        padding-top: calc(env(safe-area-inset-top, 0px) + 15px);
       }
 
       .sidebar.open {
@@ -412,7 +413,10 @@
       
       /* Ajustes de responsividade mobile */
       .topbar {
-        padding: 10px 15px;
+        padding-top: calc(env(safe-area-inset-top, 0px) + 25px);
+        padding-bottom: 15px;
+        padding-left: 15px;
+        padding-right: 15px;
       }
       .topbar h3 {
         font-size: 1rem;
@@ -516,6 +520,7 @@
       <li id="menu-caixa" class="active" onclick="navigate('caixa')"><i class="fas fa-cash-register"></i> Caixa /
         Fechamento</li>
       <li id="menu-hist" onclick="navigate('historico')"><i class="fas fa-list"></i> Meu Histórico</li>
+      <li id="menu-gastos" onclick="navigate('gastos')" style="display:none;"><i class="fas fa-receipt"></i> Lançar Gastos</li>
       <li id="menu-users" onclick="navigate('usuarios')" style="display:none;"><i class="fas fa-users"></i> Usuários
       </li>
     </ul>
@@ -558,7 +563,7 @@
           </div>
         </div>
 
-        <!-- 4 KPIs AGORA -->
+        <!-- 6 KPIs AGORA -->
         <div class="kpi-container">
           <div class="kpi-card">
             <h4>Faturamento Total</h4>
@@ -575,6 +580,15 @@
           <div class="kpi-card" style="border-left-color: #FF9800;">
             <h4>Dinheiro</h4>
             <div class="value" id="kpi-dinheiro">R$ 0,00</div>
+          </div>
+          <div class="kpi-card" style="border-left-color: #E91E63;">
+            <h4>Custos Totais</h4>
+            <div class="value" id="kpi-custos-totais">R$ 0,00</div>
+          </div>
+          <div class="kpi-card" style="border-left-color: #9C27B0;">
+            <h4>Margem</h4>
+            <div class="value" id="kpi-margem">R$ 0,00</div>
+            <div id="kpi-margem-pct" style="font-size: 0.85em; color: #666; margin-top: 2px;">Margem: 0%</div>
           </div>
         </div>
 
@@ -684,6 +698,52 @@
           </table>
         </div>
       </div>
+
+      <!-- TELA 5: GASTOS (CUSTOS) -->
+      <div id="screen-gastos" class="screen">
+        <div class="card" style="max-width: 500px; margin: 0 auto 20px auto;">
+          <h3 class="section-title">Registrar Gasto</h3>
+          <div class="form-group">
+            <label>Loja</label>
+            <select id="gasto-loja"></select>
+          </div>
+          <div class="row">
+            <div class="col form-group">
+              <label>Data</label>
+              <input type="date" id="gasto-data" required>
+            </div>
+            <div class="col form-group">
+              <label>Valor (R$)</label>
+              <input type="text" id="gasto-valor" class="dinheiro" inputmode="decimal" placeholder="0,00" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Categoria</label>
+            <select id="gasto-categoria">
+              <option value="Produtos">Produtos</option>
+              <option value="Salario">Salario</option>
+              <option value="Outros">Outros</option>
+            </select>
+          </div>
+          <button class="btn-primary" onclick="salvarCustoBtn()" id="btnSalvarCusto">Salvar Gasto</button>
+        </div>
+        
+        <div class="card" style="overflow-x: auto;">
+          <h4>Histórico de Gastos</h4>
+          <table>
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Loja</th>
+                <th>Valor</th>
+                <th>Categoria</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-gastos"></tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
   </main>
 
@@ -811,8 +871,18 @@
       document.getElementById('lbl-username').innerText = data.user.nome;
       document.getElementById('lbl-perfil').innerText = data.user.perfil;
 
+      // Popula lojas no form de gastos
+      var gLoja = document.getElementById('gasto-loja');
+      if (gLoja) {
+        gLoja.innerHTML = '';
+        data.lojas.forEach(function (l) {
+          gLoja.add(new Option(l, l));
+        });
+      }
+
       if (data.user.perfil === 'ADM') {
         document.getElementById('menu-dash').style.display = 'flex';
+        document.getElementById('menu-gastos').style.display = 'flex';
         document.getElementById('menu-users').style.display = 'flex';
       } else {
         document.getElementById('menu-hist').innerHTML = '<i class="fas fa-list"></i> Meus Lançamentos';
@@ -842,6 +912,12 @@
     function hideLoader() { document.getElementById('global-loader').style.display = 'none'; }
 
     function navigate(screenId) {
+      // Bloqueio de segurança extra no frontend para ADM
+      if ((screenId === 'gastos' || screenId === 'usuarios' || screenId === 'dashboard') && appData.user.perfil !== 'ADM') {
+        alert("Acesso restrito.");
+        return;
+      }
+
       document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
       document.querySelectorAll('.nav-links li').forEach(el => el.classList.remove('active'));
       document.getElementById('screen-' + screenId).classList.add('active');
@@ -850,6 +926,12 @@
       if (screenId === 'dashboard') { document.getElementById('menu-dash').classList.add('active'); title = "Dashboard MGOO"; }
       if (screenId === 'caixa') { document.getElementById('menu-caixa').classList.add('active'); title = "Controle de Caixa"; }
       if (screenId === 'historico') { document.getElementById('menu-hist').classList.add('active'); title = "Histórico de Lançamentos"; }
+      if (screenId === 'gastos') { 
+        document.getElementById('menu-gastos').classList.add('active'); 
+        title = "Gestão de Gastos"; 
+        prepararFormGasto();
+        renderTabelaGastos();
+      }
       if (screenId === 'usuarios') { 
         document.getElementById('menu-users').classList.add('active'); 
         title = "Gestão de Equipe"; 
@@ -1018,32 +1100,33 @@
 
       var fLoja = document.getElementById('filtro-loja').value;
       var fInicio = document.getElementById('filtro-inicio').value;
-      var fFim = document.getElementById('filtro-fim').value;
+      var tCustos = 0;
+      if (appData.custos) {
+        appData.custos.forEach(function (c) {
+          if (fLoja !== 'Todas' && c.loja !== fLoja) return;
+          if (fInicio && c.dataRef < fInicio) return;
+          if (fFim && c.dataRef > fFim) return;
 
-      var tPix = 0, tCartao = 0, tDinheiro = 0, tSangria = 0, vendasLoja = {}, vendasTempo = {};
+          var v = parseFloat(c.valor.replace(/\./g, '').replace(',', '.'));
+          tCustos += v;
+        });
+      }
 
-      appData.fechamentos.forEach(function (f) {
-        if (fLoja !== 'Todas' && f.loja !== fLoja) return;
-        if (fInicio && f.dataRef < fInicio) return;
-        if (fFim && f.dataRef > fFim) return;
+      var fatTotal = tPix + tCartao + tDinheiro - tSangria;
+      var margemAbs = fatTotal - tCustos;
+      var margemPct = fatTotal > 0 ? (margemAbs / fatTotal) * 100 : 0;
 
-        var p = parseFloat(f.pix.replace(/\./g, '').replace(',', '.'));
-        var c = parseFloat(f.cartao.replace(/\./g, '').replace(',', '.'));
-        var d = parseFloat(f.dinheiro.replace(/\./g, '').replace(',', '.'));
-        var s = parseFloat(f.sangria.replace(/\./g, '').replace(',', '.'));
-
-        tPix += p; tCartao += c; tDinheiro += d; tSangria += s;
-        var tot = p + c + d - s;
-
-        if (!vendasLoja[f.loja]) vendasLoja[f.loja] = 0; vendasLoja[f.loja] += tot;
-        if (!vendasTempo[f.dataRef]) vendasTempo[f.dataRef] = 0; vendasTempo[f.dataRef] += tot;
-      });
-
-      // Atualiza os 4 KPIs
-      document.getElementById('kpi-total').innerText = 'R$ ' + (tPix + tCartao + tDinheiro - tSangria).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+      // Atualiza os 6 KPIs
+      document.getElementById('kpi-total').innerText = 'R$ ' + fatTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
       document.getElementById('kpi-pix').innerText = 'R$ ' + tPix.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
       document.getElementById('kpi-cartao').innerText = 'R$ ' + tCartao.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
       document.getElementById('kpi-dinheiro').innerText = 'R$ ' + tDinheiro.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+      document.getElementById('kpi-custos-totais').innerText = 'R$ ' + tCustos.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+      
+      var cardMargem = document.getElementById('kpi-margem').parentElement;
+      cardMargem.style.borderLeftColor = margemAbs >= 0 ? '#9C27B0' : '#d9534f';
+      document.getElementById('kpi-margem').innerText = 'R$ ' + margemAbs.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+      document.getElementById('kpi-margem-pct').innerText = 'Margem: ' + margemPct.toFixed(1) + '%';
 
       // Agrupamento temporal inteligente para o gráfico de faturamento
       var uniqueDaysCount = Object.keys(vendasTempo).length;
@@ -1105,6 +1188,71 @@
       var ctxL = document.getElementById('chartLojas').getContext('2d');
       if (chartLojasInst) chartLojasInst.destroy();
       chartLojasInst = new Chart(ctxL, { type: 'bar', data: { labels: Object.keys(vendasLoja), datasets: [{ label: 'Faturamento R$', data: Object.values(vendasLoja), backgroundColor: '#8C6A48' }] }, options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } } });
+    }
+
+    function prepararFormGasto() {
+      document.getElementById('gasto-loja').value = appData.user.lojaPadrao === 'Todas' ? appData.lojas[0] : appData.user.lojaPadrao;
+      var hoje = new Date();
+      document.getElementById('gasto-data').value = new Date(hoje.getTime() - (hoje.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+      document.getElementById('gasto-valor').value = '';
+      document.getElementById('gasto-categoria').value = 'Produtos';
+    }
+
+    function renderTabelaGastos() {
+      var tbody = document.getElementById('tbody-gastos');
+      tbody.innerHTML = '';
+      if (!appData.custos) return;
+      
+      appData.custos.forEach(function(c) {
+        var dBR = c.dataRef.split('-').reverse().join('/');
+        tbody.innerHTML += `<tr>
+          <td>${dBR}</td>
+          <td>${c.loja}</td>
+          <td style="font-weight:bold; color:#d9534f">R$ ${c.valor}</td>
+          <td>${c.categoria}</td>
+        </tr>`;
+      });
+    }
+
+    function salvarCustoBtn() {
+      var btn = document.getElementById('btnSalvarCusto');
+      var val = document.getElementById('gasto-valor').value;
+      var data = document.getElementById('gasto-data').value;
+      
+      if (!val || val === "0,00" || !data) {
+        alert("Por favor, preencha todos os campos obrigatórios.");
+        return;
+      }
+      
+      btn.disabled = true;
+      btn.innerText = 'Salvando...';
+      
+      var payload = {
+        dataRef: data,
+        loja: document.getElementById('gasto-loja').value,
+        valor: val,
+        categoria: document.getElementById('gasto-categoria').value,
+        userEmail: appData.user.email
+      };
+      
+      executeAction('salvarCusto', { dados: payload })
+        .then(function(msg) {
+          alert(msg);
+          return executeAction('getAppDataForUser', { email: appData.user.email });
+        })
+        .then(function(d) {
+          appData = d;
+          renderTabelaGastos();
+          if (appData.user.perfil === 'ADM') renderDashboard();
+          prepararFormGasto();
+          btn.disabled = false;
+          btn.innerText = 'Salvar Gasto';
+        })
+        .catch(function(err) {
+          alert('Erro: ' + (err.message || err.toString()));
+          btn.disabled = false;
+          btn.innerText = 'Tentar Novamente';
+        });
     }
 
     function aplicarMascaras() {
