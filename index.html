@@ -409,6 +409,68 @@
       .menu-toggle {
         display: block;
       }
+      
+      /* Ajustes de responsividade mobile */
+      .topbar {
+        padding: 10px 15px;
+      }
+      .topbar h3 {
+        font-size: 1rem;
+        max-width: 140px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .topbar button {
+        padding: 6px 10px;
+        font-size: 0.8em;
+      }
+      
+      .content-area {
+        padding: 15px;
+      }
+      
+      .filter-bar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+        padding: 12px;
+      }
+      .filter-bar .form-group {
+        width: 100%;
+        min-width: unset !important;
+        margin-bottom: 5px;
+      }
+      .filter-bar button {
+        width: 100%;
+        margin-top: 5px;
+        padding: 12px;
+      }
+      
+      .kpi-container {
+        gap: 10px;
+        margin-bottom: 15px;
+      }
+      .kpi-card {
+        padding: 12px 15px;
+        min-width: calc(50% - 5px) !important;
+        flex: unset;
+      }
+      .kpi-card h4 {
+        font-size: 0.75em;
+      }
+      .kpi-card .value {
+        font-size: 1.25em;
+      }
+      
+      .card {
+        padding: 15px;
+        margin-bottom: 15px;
+      }
+      
+      table {
+        min-width: 500px;
+      }
     }
   </style>
 </head>
@@ -438,35 +500,6 @@
       </div>
       <button class="btn-primary" onclick="efetuarLogin()" id="btnLogin">Entrar</button>
       <p id="login-msg" style="color: red; margin-top: 15px; font-size: 0.9em; font-weight: bold;"></p>
-
-      <!-- Link de configuração de API (oculto se rodando direto dentro do GAS) -->
-      <div id="cfg-api-link-container" style="margin-top: 20px; display: none;">
-        <a href="#" onclick="abrirConfigAPI()"
-          style="color: var(--primary); font-size: 0.85em; text-decoration: none; font-weight: bold;"><i
-            class="fas fa-cog"></i> Configurar URL da API</a>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL DE CONFIGURAÇÃO DA API -->
-  <div id="modal-config-api"
-    style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:99999; justify-content:center; align-items:center; backdrop-filter: blur(3px);">
-    <div class="card"
-      style="max-width:400px; width:90%; background:var(--card-bg); padding:30px; text-align:center; box-shadow: 0 15px 35px rgba(0,0,0,0.2); border-radius: 12px; margin: 0;">
-      <h3
-        style="color:var(--primary); margin-bottom:15px; border-bottom: 2px solid var(--primary); padding-bottom: 5px; display: inline-block;">
-        <i class="fas fa-cog"></i> Configuração da API</h3>
-      <p style="font-size:0.9em; color:#666; margin-bottom:20px; line-height: 1.4;">Insira a URL de execução do seu
-        Google Apps Script Web App para conectar o aplicativo à planilha.</p>
-      <div class="form-group" style="text-align:left;">
-        <label>URL do Web App (Apps Script)</label>
-        <input type="text" id="cfg-api-url" placeholder="https://script.google.com/macros/s/.../exec"
-          style="background:#fff;">
-      </div>
-      <div style="display:flex; gap:10px; margin-top:20px;">
-        <button class="btn-primary" onclick="salvarConfigAPI()" style="padding:10px;">Salvar</button>
-        <button class="btn-secundario" onclick="fecharConfigAPI()" style="flex:1; padding:10px;">Cancelar</button>
-      </div>
     </div>
   </div>
 
@@ -669,12 +702,6 @@
         window.history.replaceState({}, document.title, window.location.pathname);
       }
 
-      // Exibe o link de configuração da API se rodando fora do iframe do Apps Script
-      var isInsideGAS = (window.google && google.script && google.script.run);
-      if (!isInsideGAS) {
-        document.getElementById('cfg-api-link-container').style.display = 'block';
-      }
-
       var emailSalvo = localStorage.getItem('mgoo_email');
       var senhaSalva = localStorage.getItem('mgoo_senha');
 
@@ -717,8 +744,7 @@
       // Standalone (Vercel, Netlify, Local) - usa fetch()
       var apiUrl = localStorage.getItem('mgoo_api_url') || DEFAULT_API_URL;
       if (!apiUrl) {
-        abrirConfigAPI("Por favor, configure a URL da API do Google Apps Script.");
-        throw new Error("URL da API não configurada.");
+        throw new Error("URL da API não configurada no código.");
       }
 
       const response = await fetch(apiUrl, {
@@ -738,41 +764,6 @@
         throw new Error(res.error || "Erro desconhecido na API.");
       }
       return res.data;
-    }
-
-    function abrirConfigAPI(msg) {
-      if (msg) alert(msg);
-      var currentUrl = localStorage.getItem('mgoo_api_url') || '';
-      document.getElementById('cfg-api-url').value = currentUrl;
-      document.getElementById('modal-config-api').style.display = 'flex';
-    }
-
-    function fecharConfigAPI() {
-      document.getElementById('modal-config-api').style.display = 'none';
-    }
-
-    function salvarConfigAPI() {
-      var url = document.getElementById('cfg-api-url').value.trim();
-      if (!url) {
-        alert("A URL não pode ser vazia.");
-        return;
-      }
-      if (!url.startsWith("https://script.google.com/")) {
-        alert("A URL deve ser do domínio do Google Apps Script (https://script.google.com/...)");
-        return;
-      }
-      localStorage.setItem('mgoo_api_url', url);
-      alert("URL da API configurada com sucesso!");
-      fecharConfigAPI();
-
-      var emailSalvo = localStorage.getItem('mgoo_email');
-      var senhaSalva = localStorage.getItem('mgoo_senha');
-      if (emailSalvo && senhaSalva) {
-        showLoader("Autenticando...");
-        executeAction('fazerLogin', { email: emailSalvo, senha: senhaSalva })
-          .then(initApp)
-          .catch(falhaLoginSilencioso);
-      }
     }
 
     function efetuarLogin() {
@@ -859,7 +850,11 @@
       if (screenId === 'dashboard') { document.getElementById('menu-dash').classList.add('active'); title = "Dashboard MGOO"; }
       if (screenId === 'caixa') { document.getElementById('menu-caixa').classList.add('active'); title = "Controle de Caixa"; }
       if (screenId === 'historico') { document.getElementById('menu-hist').classList.add('active'); title = "Histórico de Lançamentos"; }
-      if (screenId === 'usuarios') { document.getElementById('menu-users').classList.add('active'); title = "Gestão de Equipe"; }
+      if (screenId === 'usuarios') { 
+        document.getElementById('menu-users').classList.add('active'); 
+        title = "Gestão de Equipe"; 
+        renderTabelaUsuarios();
+      }
       document.getElementById('topbar-title').innerText = title;
 
       if (window.innerWidth <= 768) {
@@ -1050,10 +1045,62 @@
       document.getElementById('kpi-cartao').innerText = 'R$ ' + tCartao.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
       document.getElementById('kpi-dinheiro').innerText = 'R$ ' + tDinheiro.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
 
-      var dates = Object.keys(vendasTempo).sort();
+      // Agrupamento temporal inteligente para o gráfico de faturamento
+      var uniqueDaysCount = Object.keys(vendasTempo).length;
+      var labels = [];
+      var dataPoints = [];
+
+      if (uniqueDaysCount >= 40) {
+        // Agrupa por mês (YYYY-MM)
+        var vendasMes = {};
+        appData.fechamentos.forEach(function(f) {
+          if (fLoja !== 'Todas' && f.loja !== fLoja) return;
+          if (fInicio && f.dataRef < fInicio) return;
+          if (fFim && f.dataRef > fFim) return;
+
+          var p = parseFloat(f.pix.replace(/\./g, '').replace(',', '.')); 
+          var c = parseFloat(f.cartao.replace(/\./g, '').replace(',', '.'));
+          var d = parseFloat(f.dinheiro.replace(/\./g, '').replace(',', '.')); 
+          var s = parseFloat(f.sangria.replace(/\./g, '').replace(',', '.'));
+          var tot = p + c + d - s;
+          
+          var mesKey = f.dataRef.substring(0, 7); // Ex: "2026-08"
+          if (!vendasMes[mesKey]) vendasMes[mesKey] = 0;
+          vendasMes[mesKey] += tot;
+        });
+
+        var months = Object.keys(vendasMes).sort();
+        labels = months.map(m => {
+          var parts = m.split('-');
+          return parts[1] + '/' + parts[0]; // Retorna "MM/YYYY" (Ex: "08/2026")
+        });
+        dataPoints = months.map(m => vendasMes[m]);
+      } else {
+        // Agrupa por dia (comportamento original)
+        var dates = Object.keys(vendasTempo).sort();
+        labels = dates.map(d => d.split('-').reverse().slice(0, 2).join('/')); // Retorna "DD/MM" (Ex: "19/08")
+        dataPoints = dates.map(d => vendasTempo[d]);
+      }
+
       var ctxT = document.getElementById('chartTempo').getContext('2d');
       if (chartTempoInst) chartTempoInst.destroy();
-      chartTempoInst = new Chart(ctxT, { type: 'line', data: { labels: dates.map(d => d.split('-').reverse().slice(0, 2).join('/')), datasets: [{ label: 'Faturamento R$', data: dates.map(d => vendasTempo[d]), borderColor: '#4A3B32', fill: true, tension: 0.3 }] }, options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } } });
+      chartTempoInst = new Chart(ctxT, { 
+        type: 'line', 
+        data: { 
+          labels: labels, 
+          datasets: [{ 
+            label: 'Faturamento R$', 
+            data: dataPoints, 
+            borderColor: '#4A3B32', 
+            fill: true, 
+            tension: 0.3 
+          }] 
+        }, 
+        options: { 
+          plugins: { legend: { display: false } }, 
+          scales: { y: { beginAtZero: true } } 
+        } 
+      });
 
       var ctxL = document.getElementById('chartLojas').getContext('2d');
       if (chartLojasInst) chartLojasInst.destroy();

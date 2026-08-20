@@ -29,17 +29,19 @@ function fazerLogin(email, senha) {
       if(ativoBanco !== 'Sim') throw new Error("Usuário inativo.");
       if(senhaBanco !== senhaBuscada) throw new Error("Senha incorreta.");
       
-      // Login Sucesso! Retorna os dados completos da aplicação para esse usuário.
-      return getAppDataForUser(emailBuscado);
+      // Login Sucesso! Retorna os dados completos da aplicação para esse usuário economizando leituras do banco.
+      return getAppDataForUser(emailBuscado, ss, usersData);
     }
   }
   throw new Error("E-mail não encontrado.");
 }
 
-function getAppDataForUser(emailUsuario) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var wsUsuarios = ss.getSheetByName('Usuarios');
-  var usersData = wsUsuarios.getDataRange().getValues();
+function getAppDataForUser(emailUsuario, ss, usersData) {
+  if (!ss) ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (!usersData) {
+    var wsUsuarios = ss.getSheetByName('Usuarios');
+    usersData = wsUsuarios.getDataRange().getValues();
+  }
   
   var currentUser = null;
   var allUsers = [];
