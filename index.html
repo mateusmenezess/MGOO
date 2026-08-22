@@ -1122,8 +1122,12 @@
         var d = parseFloat(f.dinheiro.replace(/\./g, '').replace(',', '.'));
         var s = parseFloat(f.sangria.replace(/\./g, '').replace(',', '.'));
 
-        tPix += p; tCartao += c; tDinheiro += d; tSangria += s;
-        var tot = p + c + d - s;
+        // Desconto das taxas de gateway de pagamento
+        var pNet = p * (1 - 0.0098); // Taxa Pix: 0.98%
+        var cNet = c * (1 - 0.035);  // Taxa Cartão: 3.5%
+
+        tPix += pNet; tCartao += cNet; tDinheiro += d; tSangria += s;
+        var tot = pNet + cNet + d - s;
 
         if (!vendasLoja[f.loja]) vendasLoja[f.loja] = 0; vendasLoja[f.loja] += tot;
         if (!vendasTempo[f.dataRef]) vendasTempo[f.dataRef] = 0; vendasTempo[f.dataRef] += tot;
@@ -1174,7 +1178,11 @@
           var c = parseFloat(f.cartao.replace(/\./g, '').replace(',', '.'));
           var d = parseFloat(f.dinheiro.replace(/\./g, '').replace(',', '.'));
           var s = parseFloat(f.sangria.replace(/\./g, '').replace(',', '.'));
-          var tot = p + c + d - s;
+          
+          // Desconto das taxas de gateway de pagamento
+          var pNet = p * (1 - 0.0098); // Taxa Pix: 0.98%
+          var cNet = c * (1 - 0.035);  // Taxa Cartão: 3.5%
+          var tot = pNet + cNet + d - s;
 
           var mesKey = f.dataRef.substring(0, 7); // Ex: "2026-08"
           if (!vendasMes[mesKey]) vendasMes[mesKey] = 0;
