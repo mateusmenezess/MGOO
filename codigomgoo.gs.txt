@@ -44,10 +44,35 @@ function getAppDataForUser(emailUsuario, ss, usersData) {
   }
   
   var currentUser = null;
-  var allUsers = [];
-  
   for(var i=1; i<usersData.length; i++) {
-    var u = {
+    var email = usersData[i][0].toString().toLowerCase().trim();
+    if(email === emailUsuario) {
+      currentUser = {
+        email: email, 
+        nome: usersData[i][1], 
+        perfil: usersData[i][2],
+        lojaPadrao: usersData[i][3], 
+        entradaPadrao: formatarHora(usersData[i][4]), 
+        saidaPadrao: formatarHora(usersData[i][5]), 
+        ativo: usersData[i][6],
+        senha: usersData[i][7]
+      };
+      break;
+    }
+  }
+  
+  if (!currentUser) throw new Error("Usuário não encontrado.");
+  
+  var allUsers = [];
+  for(var i=1; i<usersData.length; i++) {
+    var uLoja = usersData[i][3] ? usersData[i][3].toString().trim() : "";
+    
+    // Se o ADM logado for de uma loja específica, ele só vê os usuários daquela mesma loja
+    if (currentUser.perfil === 'ADM' && currentUser.lojaPadrao !== 'Todas' && uLoja !== currentUser.lojaPadrao) {
+      continue;
+    }
+    
+    allUsers.push({
       email: usersData[i][0].toString().toLowerCase().trim(), 
       nome: usersData[i][1], 
       perfil: usersData[i][2],
@@ -56,16 +81,21 @@ function getAppDataForUser(emailUsuario, ss, usersData) {
       saidaPadrao: formatarHora(usersData[i][5]), 
       ativo: usersData[i][6],
       senha: usersData[i][7]
-    };
-    allUsers.push(u);
-    if(u.email === emailUsuario) currentUser = u;
+    });
   }
   
   var wsLojas = ss.getSheetByName('Lojas');
   var lojasData = wsLojas.getDataRange().getValues();
   var lojas = [];
   for(var i=1; i<lojasData.length; i++) {
-    if(lojasData[i][2] === 'Ativa') lojas.push(lojasData[i][1]);
+    if(lojasData[i][2] === 'Ativa') {
+      var nomeLoja = lojasData[i][1].toString().trim();
+      // Se o usuário (ADM ou Lojista) tiver uma loja padrão específica (não 'Todas'), ele só vê ela
+      if (currentUser.lojaPadrao !== 'Todas' && nomeLoja !== currentUser.lojaPadrao) {
+        continue;
+      }
+      lojas.push(nomeLoja);
+    }
   }
 
   var wsFechamentos = ss.getSheetByName('Fechamentos');
@@ -75,8 +105,20 @@ function getAppDataForUser(emailUsuario, ss, usersData) {
   for(var i=fechData.length-1; i>=1; i--) { 
     var row = fechData[i];
     var autor = row[5] ? row[5].toString().toLowerCase().trim() : "";
+    var lojaRow = row[6] ? row[6].toString().trim() : "";
     
-    if(currentUser.perfil === 'ADM' || autor === emailUsuario) {
+    if(currentUser.perfil === 'ADM') {
+      // ADM específico só vê vendas da própria loja
+      if (currentUser.lojaPadrao !== 'Todas' && lojaRow !== currentUser.lojaPadrao) {
+        continue;
+      }
+      fechamentos.push({
+        id: row[0], dataRef: formatarData(row[2]), entrada: formatarHora(row[3]), saida: formatarHora(row[4]),
+        usuario: row[5], loja: row[6], pix: formatarMoeda(row[7]), dinheiro: formatarMoeda(row[8]),
+        cartao: formatarMoeda(row[9]), sangria: formatarMoeda(row[10]), obsSangria: row[11],
+        total: formatarMoeda((row[7] || 0) + (row[8] || 0) + (row[9] || 0) - (row[10] || 0))
+      });
+    } else if (autor === emailUsuario) {
       fechamentos.push({
         id: row[0], dataRef: formatarData(row[2]), entrada: formatarHora(row[3]), saida: formatarHora(row[4]),
         usuario: row[5], loja: row[6], pix: formatarMoeda(row[7]), dinheiro: formatarMoeda(row[8]),
@@ -96,6 +138,12 @@ function getAppDataForUser(emailUsuario, ss, usersData) {
     var custosData = wsCustos.getDataRange().getValues();
     for (var i = custosData.length - 1; i >= 1; i--) {
       var rowC = custosData[i];
+      var lojaC = rowC[3] ? rowC[3].toString().trim() : "";
+      
+      // ADM específico só vê custos da própria loja
+      if (currentUser.lojaPadrao !== 'Todas' && lojaC !== currentUser.lojaPadrao) {
+        continue;
+      }
       custos.push({
         id: rowC[0], carimbo: formatarData(rowC[1]), dataRef: formatarData(rowC[2]),
         loja: rowC[3], valor: formatarMoeda(rowC[4]), categoria: rowC[5]
@@ -224,7 +272,7 @@ function salvarCusto(dados) {
     }
   }
   if (!isADM) {
-    throw new Error("Acesso negado. Apenas administradores ativos podem registrar gastos.");
+    throw new Error("Acesso negado. Apenas administradores ativos podem gerenciar gastos.");
   }
   
   var ws = ss.getSheetByName('Custos');
@@ -235,13 +283,87 @@ function salvarCusto(dados) {
   
   var carimbo = new Date();
   var valNum = converterParaNumero(dados.valor);
-  var lastRow = ws.getLastRow();
-  var newId = lastRow > 1 ? parseInt(ws.getRange(lastRow, 1).getValue()) + 1 : 1000;
   
-  ws.appendRow([
-    newId, carimbo, dados.dataRef, dados.loja, valNum, dados.categoria
-  ]);
-  return "Gasto registrado com sucesso!";
+  if (dados.id) {
+    var data = ws.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0].toString() === dados.id.toString()) {
+        var row = i + 1;
+        ws.getRange(row, 3).setValue(dados.dataRef);
+        ws.getRange(row, 4).setValue(dados.loja);
+        ws.getRange(row, 5).setValue(valNum);
+        ws.getRange(row, 6).setValue(dados.categoria);
+        return "Gasto atualizado com sucesso!";
+      }
+    }
+    throw new Error("Gasto não encontrado para edição.");
+  } else {
+    var lastRow = ws.getLastRow();
+    var newId = lastRow > 1 ? parseInt(ws.getRange(lastRow, 1).getValue()) + 1 : 1000;
+    
+    ws.appendRow([
+      newId, carimbo, dados.dataRef, dados.loja, valNum, dados.categoria
+    ]);
+    return "Gasto registrado com sucesso!";
+  }
+}
+
+function excluirFechamento(dados) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var wsUsuarios = ss.getSheetByName('Usuarios');
+  var usersData = wsUsuarios.getDataRange().getValues();
+  var emailFormatado = dados.userEmail.toLowerCase().trim();
+  var isADM = false;
+  
+  for (var i = 1; i < usersData.length; i++) {
+    if (usersData[i][0].toString().toLowerCase().trim() === emailFormatado && usersData[i][2] === 'ADM' && usersData[i][6] === 'Sim') {
+      isADM = true;
+      break;
+    }
+  }
+  if (!isADM) {
+    throw new Error("Acesso negado. Apenas administradores ativos podem excluir fechamentos.");
+  }
+  
+  var ws = ss.getSheetByName('Fechamentos');
+  var data = ws.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0].toString() === dados.id.toString()) {
+      var row = i + 1;
+      ws.deleteRow(row);
+      return "Fechamento excluído com sucesso!";
+    }
+  }
+  throw new Error("Fechamento não encontrado para exclusão.");
+}
+
+function excluirCusto(dados) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var wsUsuarios = ss.getSheetByName('Usuarios');
+  var usersData = wsUsuarios.getDataRange().getValues();
+  var emailFormatado = dados.userEmail.toLowerCase().trim();
+  var isADM = false;
+  
+  for (var i = 1; i < usersData.length; i++) {
+    if (usersData[i][0].toString().toLowerCase().trim() === emailFormatado && usersData[i][2] === 'ADM' && usersData[i][6] === 'Sim') {
+      isADM = true;
+      break;
+    }
+  }
+  if (!isADM) {
+    throw new Error("Acesso negado. Apenas administradores ativos podem excluir gastos.");
+  }
+  
+  var ws = ss.getSheetByName('Custos');
+  var data = ws.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0].toString() === dados.id.toString()) {
+      var row = i + 1;
+      ws.deleteRow(row);
+      return "Gasto excluído com sucesso!";
+    }
+  }
+  throw new Error("Gasto não encontrado para exclusão.");
 }
 
 function doPost(e) {
@@ -261,6 +383,10 @@ function doPost(e) {
       result = salvarUsuario(payload.dados);
     } else if (action === 'salvarCusto') {
       result = salvarCusto(payload.dados);
+    } else if (action === 'excluirFechamento') {
+      result = excluirFechamento(payload.dados);
+    } else if (action === 'excluirCusto') {
+      result = excluirCusto(payload.dados);
     } else {
       throw new Error("Ação não reconhecida: " + action);
     }

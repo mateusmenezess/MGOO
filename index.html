@@ -710,7 +710,8 @@
       <!-- TELA 5: GASTOS (CUSTOS) -->
       <div id="screen-gastos" class="screen">
         <div class="card" style="max-width: 500px; margin: 0 auto 20px auto;">
-          <h3 class="section-title">Registrar Gasto</h3>
+          <h3 class="section-title" id="form-gasto-title">Registrar Gasto</h3>
+          <input type="hidden" id="gasto-id" value="">
           <div class="form-group">
             <label>Loja</label>
             <select id="gasto-loja"></select>
@@ -745,6 +746,7 @@
                 <th>Loja</th>
                 <th>Valor</th>
                 <th>Categoria</th>
+                <th>Ações</th>
               </tr>
             </thead>
             <tbody id="tbody-gastos"></tbody>
@@ -1036,7 +1038,10 @@
       appData.fechamentos.forEach(function (f) {
         var dBR = f.dataRef.split('-').reverse().join('/');
         var permiteEditar = (appData.user.perfil === 'ADM' || f.dataRef === strHoje);
-        var acoesHtml = permiteEditar ? `<button class="btn-small btn-edit" onclick="editarFechamento('${f.id}')"><i class="fas fa-edit"></i> Editar</button>` : `<span style="font-size: 0.85em; color: #888;"><i class="fas fa-lock"></i> Fechado</span>`;
+        var acoesHtml = permiteEditar ? `
+          <button class="btn-small btn-edit" onclick="editarFechamento('${f.id}')"><i class="fas fa-edit"></i> Editar</button>
+          <button class="btn-small btn-delete" onclick="excluirFechamentoBtn('${f.id}')" style="background:#d9534f; margin-left: 5px;"><i class="fas fa-trash-alt"></i> Excluir</button>
+        ` : `<span style="font-size: 0.85em; color: #888;"><i class="fas fa-lock"></i> Fechado</span>`;
         tbody.innerHTML += `<tr><td>${dBR}</td><td>${f.loja}</td><td>${f.usuario.split('@')[0]}</td><td>${f.entrada} - ${f.saida}</td><td style="font-weight:bold; color:var(--primary)">R$ ${f.total}</td><td>${acoesHtml}</td></tr>`;
       });
     }
@@ -1227,12 +1232,25 @@
       chartLojasInst = new Chart(ctxL, { type: 'bar', data: { labels: Object.keys(vendasLoja), datasets: [{ label: 'Faturamento R$', data: Object.values(vendasLoja), backgroundColor: '#8C6A48' }] }, options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } } });
     }
 
-    function prepararFormGasto() {
-      document.getElementById('gasto-loja').value = appData.user.lojaPadrao === 'Todas' ? appData.lojas[0] : appData.user.lojaPadrao;
-      var hoje = new Date();
-      document.getElementById('gasto-data').value = new Date(hoje.getTime() - (hoje.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-      document.getElementById('gasto-valor').value = '';
-      document.getElementById('gasto-categoria').value = 'Produtos';
+    function prepararFormGasto(g = null) {
+      if (g) {
+        document.getElementById('form-gasto-title').innerText = "Editar Gasto #" + g.id;
+        document.getElementById('gasto-id').value = g.id;
+        document.getElementById('gasto-loja').value = g.loja;
+        document.getElementById('gasto-data').value = g.dataRef;
+        document.getElementById('gasto-valor').value = g.valor;
+        document.getElementById('gasto-categoria').value = g.categoria;
+        document.getElementById('btnSalvarCusto').innerText = "Atualizar Gasto";
+      } else {
+        document.getElementById('form-gasto-title').innerText = "Registrar Gasto";
+        document.getElementById('gasto-id').value = "";
+        document.getElementById('gasto-loja').value = appData.user.lojaPadrao === 'Todas' ? appData.lojas[0] : appData.user.lojaPadrao;
+        var hoje = new Date();
+        document.getElementById('gasto-data').value = new Date(hoje.getTime() - (hoje.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+        document.getElementById('gasto-valor').value = '';
+        document.getElementById('gasto-categoria').value = 'Produtos';
+        document.getElementById('btnSalvarCusto').innerText = "Salvar Gasto";
+      }
     }
 
     function renderTabelaGastos() {
@@ -1247,8 +1265,64 @@
           <td>${c.loja}</td>
           <td style="font-weight:bold; color:#d9534f">R$ ${c.valor}</td>
           <td>${c.categoria}</td>
+          <td>
+            <button class="btn-small btn-edit" onclick="editarGasto('${c.id}')"><i class="fas fa-edit"></i> Editar</button>
+            <button class="btn-small btn-delete" onclick="excluirCustoBtn('${c.id}')" style="background:#d9534f; margin-left:5px;"><i class="fas fa-trash-alt"></i> Excluir</button>
+          </td>
         </tr>`;
       });
+    }
+
+    function editarGasto(id) {
+      var g = appData.custos.find(x => x.id.toString() === id.toString());
+      if (g) {
+        prepararFormGasto(g);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
+
+    function excluirCustoBtn(id) {
+      if (!confirm("Deseja realmente excluir este lançamento de gasto?")) return;
+      
+      showLoader("Excluindo...");
+      executeAction('excluirCusto', { dados: { id: id, userEmail: appData.user.email } })
+        .then(function (msg) {
+          alert(msg);
+          return executeAction('getAppDataForUser', { email: appData.user.email });
+        })
+        .then(function (d) {
+          appData = d;
+          renderTabelaGastos();
+          if (appData.user.perfil === 'ADM') renderDashboard();
+          prepararFormGasto();
+          hideLoader();
+        })
+        .catch(function (err) {
+          alert('Erro: ' + (err.message || err.toString()));
+          hideLoader();
+        });
+    }
+
+    function excluirFechamentoBtn(id) {
+      if (!confirm("Deseja realmente excluir este fechamento de caixa?")) return;
+      
+      showLoader("Excluindo...");
+      executeAction('excluirFechamento', { dados: { id: id, userEmail: appData.user.email } })
+        .then(function (msg) {
+          alert(msg);
+          return executeAction('getAppDataForUser', { email: appData.user.email });
+        })
+        .then(function (d) {
+          appData = d;
+          renderTabelaHistorico();
+          if (appData.user.perfil === 'ADM') renderDashboard();
+          prepararFormCaixa();
+          hideLoader();
+        })
+        .catch(function (err) {
+          alert('Erro: ' + (err.message || err.toString()));
+          hideLoader();
+        });
     }
 
     function salvarCustoBtn() {
@@ -1265,6 +1339,7 @@
       btn.innerText = 'Salvando...';
 
       var payload = {
+        id: document.getElementById('gasto-id').value,
         dataRef: data,
         loja: document.getElementById('gasto-loja').value,
         valor: val,
