@@ -1051,6 +1051,17 @@
 
     function salvarFechamentoBtn() {
       var btn = document.getElementById('btnSalvarCaixa');
+      
+      var lojaVal = document.getElementById('loja').value;
+      var dataVal = document.getElementById('dataRef').value;
+      var entradaVal = document.getElementById('entrada').value;
+      var saidaVal = document.getElementById('saida').value;
+
+      if (!lojaVal || !dataVal || !entradaVal || !saidaVal) {
+        alert("Por favor, preencha todos os campos obrigatórios (Loja, Data, Entrada e Saída).");
+        return;
+      }
+
       var sangriaVal = document.getElementById('sangria').value;
       var obsVal = document.getElementById('obsSangria').value;
 

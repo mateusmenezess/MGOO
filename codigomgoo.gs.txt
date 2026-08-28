@@ -165,6 +165,9 @@ function getAppDataForUser(emailUsuario, ss, usersData) {
 // --------------------------------------------------------
 
 function salvarFechamento(dados) {
+  if (!dados.loja || !dados.dataRef || !dados.entrada || !dados.saida) {
+    throw new Error("Erro: Os campos Loja, Data, Entrada e Saída são obrigatórios.");
+  }
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var ws = ss.getSheetByName('Fechamentos');
   var carimbo = new Date();
@@ -259,6 +262,9 @@ function formatarMoeda(valor) { return !valor ? "0,00" : parseFloat(valor).toFix
 function converterParaNumero(valor) { return !valor ? 0.00 : parseFloat(valor.toString().replace(/\./g, '').replace(',', '.')); }
 
 function salvarCusto(dados) {
+  if (!dados.loja || !dados.dataRef || !dados.valor || !dados.categoria) {
+    throw new Error("Erro: Os campos Loja, Data, Valor e Categoria são obrigatórios.");
+  }
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var wsUsuarios = ss.getSheetByName('Usuarios');
   var usersData = wsUsuarios.getDataRange().getValues();
